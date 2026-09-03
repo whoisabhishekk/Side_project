@@ -2460,8 +2460,8 @@ function renderSniperTracker(key) {
   if (!tracker) return;
 
   const strategy = state.selectedStrategy || 'SNIPER_3_LOSS_RGRG';
-  // Show for Sniper, Recovery, and RGRG Lock Reset strategies
-  if ((strategy !== 'SNIPER_3_LOSS_RGRG' && strategy !== 'RECOVERY_3_CHANCE' && strategy !== 'RGRG_LOCK_RESET' && strategy !== 'RGR_GRG_3' && strategy !== 'CONTRARIAN_DOUBLE') || section.disabled) {
+  // Show for Sniper, Recovery, RGRG Lock Reset, and LOSS_2_RG_GR strategies
+  if ((strategy !== 'SNIPER_3_LOSS_RGRG' && strategy !== 'RECOVERY_3_CHANCE' && strategy !== 'RGRG_LOCK_RESET' && strategy !== 'RGR_GRG_3' && strategy !== 'CONTRARIAN_DOUBLE' && strategy !== 'LOSS_2_RG_GR') || section.disabled) {
     tracker.style.display = 'none';
     return;
   }
@@ -2471,19 +2471,62 @@ function renderSniperTracker(key) {
   const labelEl = tracker.querySelector('.sniper-label');
   const countEl = document.getElementById(`sniper-count-${key}`);
 
-  if (strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'CONTRARIAN_DOUBLE') {
-    const vTarget = getVirtualLossTarget(strategy);
-    const dotsMax = VIRTUAL_LOSS_DOTS_MAX;
-    if (labelEl) labelEl.textContent = 'RGRG Loss:';
-    const count = section.virtualLossCount || 0;
-    const isLive = section.strategyState === 'SIGNAL_ACTIVE' && section.pendingBet && !section.pendingBet.isVirtual;
+  if (strategy === 'LOSS_2_RG_GR') {
+    if (labelEl) labelEl.textContent = '2-Loss Hunt:';
+    const count = section.loss2ConsecLosses || 0;
+    const isReady = section.loss2Phase === 'WAIT_RG_GR';
+    const isLive = section.loss2Phase === 'BET_1' || section.loss2Phase === 'BET_2';
 
-    // Show all 10 dots, fill based on count, mark ready after vTarget (2)
-    for (let i = 1; i <= dotsMax; i++) {
+    // Show dots
+    for (let i = 1; i <= 2; i++) {
       const dot = document.getElementById(`sniper-dot-${key}-${i}`);
       if (!dot) continue;
 
       dot.style.display = '';
+      dot.classList.remove('filled', 'ready');
+      if (i <= count) {
+        dot.classList.add('filled');
+      }
+      if (count >= 2 || isReady || isLive) {
+        dot.classList.add('ready');
+      }
+    }
+    
+    // Hide unused dots
+    for (let i = 3; i <= 10; i++) {
+      const dot = document.getElementById(`sniper-dot-${key}-${i}`);
+      if (dot) dot.style.display = 'none';
+    }
+
+    if (isLive) {
+      countEl.textContent = `🎯 LIVE!`;
+      countEl.className = 'sniper-count sniper-live';
+      tracker.classList.add('tracker-live');
+      tracker.classList.remove('tracker-ready');
+    } else if (isReady) {
+      countEl.textContent = `✅ READY!`;
+      countEl.className = 'sniper-count sniper-ready';
+      tracker.classList.add('tracker-ready');
+      tracker.classList.remove('tracker-live');
+    } else {
+      countEl.textContent = `${count}/2`;
+      countEl.className = 'sniper-count';
+      tracker.classList.remove('tracker-ready', 'tracker-live');
+    }
+  } else if (strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'CONTRARIAN_DOUBLE') {
+    const vTarget = getVirtualLossTarget(strategy);
+    const dotsMax = 10;
+    if (labelEl) labelEl.textContent = 'RGRG Loss:';
+    const count = section.virtualLossCount || 0;
+    const isLive = section.strategyState === 'SIGNAL_ACTIVE' && section.pendingBet && !section.pendingBet.isVirtual;
+
+    // Show dots
+    for (let i = 1; i <= dotsMax; i++) {
+      const dot = document.getElementById(`sniper-dot-${key}-${i}`);
+      if (!dot) continue;
+      
+      dot.style.display = i <= VIRTUAL_LOSS_DOTS_MAX ? '' : 'none';
+
       dot.classList.remove('filled', 'ready');
       if (i <= count) {
         dot.classList.add('filled');
@@ -2523,7 +2566,8 @@ function renderSniperTracker(key) {
     for (let i = 1; i <= 3; i++) {
       const dot = document.getElementById(`sniper-dot-${key}-${i}`);
       if (!dot) continue;
-
+      
+      dot.style.display = '';
       dot.classList.remove('filled', 'ready');
       if (i <= count) {
         dot.classList.add('filled');
@@ -2531,6 +2575,12 @@ function renderSniperTracker(key) {
       if (count >= 2 || isLive) {
         dot.classList.add('ready');
       }
+    }
+    
+    // Hide unused dots
+    for (let i = 4; i <= 10; i++) {
+      const dot = document.getElementById(`sniper-dot-${key}-${i}`);
+      if (dot) dot.style.display = 'none';
     }
 
     // Update count text
@@ -2562,9 +2612,11 @@ function renderSniperTracker(key) {
     const isLive = section.strategyState === 'SIGNAL_ACTIVE' && section.pendingBet && !section.pendingBet.isVirtual;
 
     // Update dots
-    for (let i = 1; i <= VIRTUAL_LOSS_TARGET; i++) {
+    for (let i = 1; i <= 10; i++) {
       const dot = document.getElementById(`sniper-dot-${key}-${i}`);
       if (!dot) continue;
+      
+      dot.style.display = i <= VIRTUAL_LOSS_TARGET ? '' : 'none';
 
       dot.classList.remove('filled', 'ready');
       if (i <= count) {
