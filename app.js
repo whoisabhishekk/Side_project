@@ -946,78 +946,6 @@ function resolveRgrgBet(key, period) {
 
   const vTarget = getVirtualLossTarget(state.selectedStrategy);
 
-  if (state.selectedStrategy === 'LOSS_2_RG_GR') {
-    // ════ LOSS_2_RG_GR: Custom virtual + live resolution ════
-    if (resolvedBet.isVirtual) {
-      if (won) {
-        section.loss2ConsecLosses = 0;
-        section.virtualLossCount = 0;
-        section.lockLossCount = 0;
-        section.strategyState = 'HUNTING';
-        addLog(`👁️ [${section.name}] Virtual WIN on #${formatPeriod(period.period)}. Consecutive losses reset.`, 'info');
-      } else {
-        section.loss2ConsecLosses++;
-        section.virtualLossCount = Math.min(VIRTUAL_LOSS_DOTS_MAX, section.loss2ConsecLosses);
-        section.lockLossCount = section.virtualLossCount;
-        if (section.loss2ConsecLosses >= 2) {
-          // 2 consecutive virtual losses! Activate RG/GR sub-strategy
-          section.loss2Phase = 'WAIT_RG_GR';
-          section.strategyState = 'READY_FOR_LIVE';
-          addLog(`🚨 [${section.name}] 2 virtual losses! ACTIVATED — waiting for RG/GR pattern...`, 'signal');
-          if (!state.isInitialLoad) {
-            play2LossAlertSound();
-            showToast(`🚨 ${section.name} — 2 losses! Waiting RG/GR...`, 'info');
-          }
-        } else {
-          section.strategyState = 'WAITING_FOR_TREND_BREAK';
-          addLog(`👁️ [${section.name}] Virtual LOSS on #${formatPeriod(period.period)}. ${section.loss2ConsecLosses}/2 losses.`, 'info');
-        }
-      }
-      persistRgrgLockState();
-      return true;
-    }
-    // LIVE bet resolution for LOSS_2_RG_GR
-    section.betHistory.push({ period: period.period, betColor: resolvedBet.color, actualColor, won });
-    hideSignalBanner();
-    if (won) {
-      section.totalWins++;
-      section.loss2Phase = 'RGRG_VIRTUAL';
-      section.loss2ConsecLosses = 0;
-      section.loss2Bet1Color = null;
-      section.virtualLossCount = 0;
-      section.lockLossCount = 0;
-      section.strategyState = 'HUNTING';
-      section.pendingBet = null;
-      addLog(`✅ [${section.name}] ${section.liveBetsUsed > 0 ? 'Bet 2' : 'Bet 1'} WIN! +₹${resolvedBet.betAmount ? (resolvedBet.betAmount * 0.96).toFixed(0) : '?'}. Reset!`, 'win');
-      playAlertSound();
-      showToast(`✅ ${section.name} WIN! Reset.`, 'success');
-    } else {
-      section.totalLosses++;
-      if (section.loss2Phase === 'BET_1') {
-        // Bet 1 lost → arm Bet 2 (opposite color, ₹90)
-        section.loss2Phase = 'BET_2';
-        const oppColor = opposite(resolvedBet.color);
-        section.pendingBet = { color: oppColor, period: section.nextPeriod || (period.period + 1), isVirtual: false, betAmount: 90 };
-        section.strategyState = 'SIGNAL_ACTIVE';
-        showTradeSignal(key);
-        addLog(`🔄 [${section.name}] Bet 1 LOSS! Recovery → ${colorName(oppColor)} ₹90 on #${formatPeriod(section.nextPeriod || (period.period + 1))}`, 'loss');
-      } else {
-        // Bet 2 lost (or any other) → full reset
-        section.loss2Phase = 'RGRG_VIRTUAL';
-        section.loss2ConsecLosses = 0;
-        section.loss2Bet1Color = null;
-        section.virtualLossCount = 0;
-        section.lockLossCount = 0;
-        section.strategyState = 'HUNTING';
-        addLog(`❌ [${section.name}] Both bets LOST! Full reset — waiting 2 new virtual losses.`, 'loss');
-      }
-      showToast(`❌ ${section.name} loss.`, 'error');
-    }
-    section.liveBetsUsed = 0;
-    persistRgrgLockState();
-    return true;
-  }
-
   if (resolvedBet.isVirtual) {
     if (won) {
       section.virtualLossCount = 0;
@@ -1404,46 +1332,183 @@ function processCycleStrategy(key) {
 }
 
 
-// ============ LOSS_2_RG_GR: RG/GR PATTERN SCAN ============
-// After 2 consecutive virtual RGRG losses, scan for RG or GR
-// in last 2 colors. If found, arm live bet on last color.
-function processLoss2RgGrStrategy(key) {
+// ============ LOSS_2_RG_GR: COMPLETE SELF-CONTAINED STRATEGY ============
+// Phase 1 (RGRG_VIRTUAL): Detect RGRG/GRGR → virtual bet → count losses
+// Phase 2 (WAIT_RG_GR): After 2 virtual losses → scan for RG/GR
+// Phase 3 (BET_1): Live bet ₹30 on last color
+// Phase 4 (BET_2): If Bet 1 lost → Live bet ₹90 on opposite color
+// Reset after Bet 1 WIN or Bet 2 (any result)
+
+function processLoss2Strategy(key) {
   const section = state.sections[key];
-  if (section.disabled || section.pendingBet) return;
-  if (section.loss2Phase !== 'WAIT_RG_GR') return;
+  if (section.disabled) return;
 
   const periods = section.periods;
-  if (periods.length < 2) return;
+  if (periods.length < 4) return;
 
   const len = periods.length;
-  const curr = getColor(periods[len - 1]);
-  const prev = getColor(periods[len - 2]);
 
-  // Need RG or GR (alternating pair), skip RR/GG
-  if (curr === prev) return;
+  // ──── If there's a pending bet, don't do anything (wait for resolution) ────
+  if (section.pendingBet) return;
 
-  // RG → bet G, GR → bet R (last color)
-  const betColor = curr;
-  section.loss2Phase = 'BET_1';
-  section.loss2Bet1Color = betColor;
-  section.loss2ConsecLosses = 0;  // reset for next cycle
-  section.pendingBet = {
-    color: betColor,
-    period: section.nextPeriod,
-    isVirtual: false,
-    betAmount: 30
-  };
-  section.strategyState = 'SIGNAL_ACTIVE';
-  persistRgrgLockState();
-  showTradeSignal(key);
-  addLog(
-    `🎯 [${section.name}] ${prev}${curr} pattern! LIVE BET → ${colorName(betColor)} ₹30 on #${formatPeriod(section.nextPeriod)}`,
-    'signal'
-  );
-  if (!state.isInitialLoad) {
-    playAlertSound();
-    showToast(`🎯 ${section.name} — ${prev}${curr} → BET ${colorName(betColor)} ₹30!`, 'info');
+  // ──── Phase: RGRG_VIRTUAL — hunt for RGRG patterns ────
+  if (section.loss2Phase === 'RGRG_VIRTUAL') {
+    // Check last 4 colors for alternating pattern
+    const last4 = [
+      getColor(periods[len - 4]),
+      getColor(periods[len - 3]),
+      getColor(periods[len - 2]),
+      getColor(periods[len - 1])
+    ];
+
+    if (!isAlternating(last4)) return;
+
+    // RGRG detected! Place virtual bet (expect last color to continue = break)
+    const betColor = last4[last4.length - 1]; // last color
+    section.patternDetected = true;
+    section.patternColors = last4;
+    section.pendingBet = {
+      color: betColor,
+      period: section.nextPeriod,
+      isVirtual: true
+    };
+    section.strategyState = 'HUNTING';
+    persistRgrgLockState();
+    addLog(
+      `👁️ [${section.name}] RGRG ${last4.join('')} → Virtual ${colorName(betColor)} on #${formatPeriod(section.nextPeriod)}. V-Losses: ${section.loss2ConsecLosses}/2`,
+      'info'
+    );
+    return;
   }
+
+  // ──── Phase: WAIT_RG_GR — scan for RG or GR pattern ────
+  if (section.loss2Phase === 'WAIT_RG_GR') {
+    const curr = getColor(periods[len - 1]);
+    const prev = getColor(periods[len - 2]);
+
+    // Need RG or GR (different colors), skip RR/GG
+    if (curr === prev) return;
+
+    // RG → bet G, GR → bet R (last color)
+    const betColor = curr;
+    section.loss2Phase = 'BET_1';
+    section.loss2Bet1Color = betColor;
+    section.pendingBet = {
+      color: betColor,
+      period: section.nextPeriod,
+      isVirtual: false,
+      betAmount: 30
+    };
+    section.strategyState = 'SIGNAL_ACTIVE';
+    persistRgrgLockState();
+    showTradeSignal(key);
+    addLog(
+      `🎯 [${section.name}] ${prev}${curr} pattern! BET 1 → ${colorName(betColor)} ₹30 on #${formatPeriod(section.nextPeriod)}`,
+      'signal'
+    );
+    if (!state.isInitialLoad) {
+      playAlertSound();
+      showToast(`🎯 ${section.name} — BET ${colorName(betColor)} ₹30!`, 'info');
+    }
+    return;
+  }
+}
+
+function resolveLoss2Bet(key, period) {
+  const section = state.sections[key];
+  const resolvedBet = section.pendingBet;
+  if (!resolvedBet || resolvedBet.period !== period.period) return false;
+
+  section.pendingBet = null;
+  const actualColor = getColor(period);
+  const won = actualColor === resolvedBet.color;
+
+  // ──── Virtual bet resolution ────
+  if (resolvedBet.isVirtual) {
+    if (won) {
+      section.loss2ConsecLosses = 0;
+      section.virtualLossCount = 0;
+      section.lockLossCount = 0;
+      section.strategyState = 'HUNTING';
+      section.loss2Phase = 'RGRG_VIRTUAL';
+      addLog(`👁️ [${section.name}] Virtual WIN #${formatPeriod(period.period)}. Losses reset to 0.`, 'info');
+    } else {
+      section.loss2ConsecLosses++;
+      section.virtualLossCount = Math.min(VIRTUAL_LOSS_DOTS_MAX, section.loss2ConsecLosses);
+      section.lockLossCount = section.virtualLossCount;
+      if (section.loss2ConsecLosses >= 2) {
+        section.loss2Phase = 'WAIT_RG_GR';
+        section.strategyState = 'READY_FOR_LIVE';
+        addLog(`🚨 [${section.name}] 2 virtual losses! Waiting for RG/GR...`, 'signal');
+        if (!state.isInitialLoad) {
+          play2LossAlertSound();
+          showToast(`🚨 ${section.name} — 2 losses! Waiting RG/GR...`, 'info');
+        }
+      } else {
+        section.loss2Phase = 'RGRG_VIRTUAL';
+        section.strategyState = 'HUNTING';
+        addLog(`👁️ [${section.name}] Virtual LOSS #${formatPeriod(period.period)}. ${section.loss2ConsecLosses}/2.`, 'info');
+      }
+    }
+    persistRgrgLockState();
+    return true;
+  }
+
+  // ──── LIVE bet resolution ────
+  section.betHistory.push({ period: period.period, betColor: resolvedBet.color, actualColor, won });
+  hideSignalBanner();
+
+  if (won) {
+    section.totalWins++;
+    // Full reset
+    section.loss2Phase = 'RGRG_VIRTUAL';
+    section.loss2ConsecLosses = 0;
+    section.loss2Bet1Color = null;
+    section.virtualLossCount = 0;
+    section.lockLossCount = 0;
+    section.strategyState = 'HUNTING';
+    section.pendingBet = null;
+    section.patternDetected = false;
+    section.patternColors = null;
+    const amt = resolvedBet.betAmount || 30;
+    addLog(`✅ [${section.name}] WIN! ${colorName(resolvedBet.color)} ₹${amt} → +₹${(amt * 0.96).toFixed(0)}. Reset!`, 'win');
+    playAlertSound();
+    showToast(`✅ ${section.name} WIN! +₹${(amt * 0.96).toFixed(0)}`, 'success');
+  } else {
+    section.totalLosses++;
+    if (section.loss2Phase === 'BET_1') {
+      // Bet 1 lost → arm Bet 2 on OPPOSITE color
+      section.loss2Phase = 'BET_2';
+      const oppColor = opposite(resolvedBet.color);
+      section.pendingBet = {
+        color: oppColor,
+        period: section.nextPeriod || (period.period + 1),
+        isVirtual: false,
+        betAmount: 90
+      };
+      section.strategyState = 'SIGNAL_ACTIVE';
+      showTradeSignal(key);
+      addLog(`🔄 [${section.name}] Bet 1 LOSS! Recovery → ${colorName(oppColor)} ₹90 on #${formatPeriod(section.nextPeriod || (period.period + 1))}`, 'loss');
+      if (!state.isInitialLoad) {
+        playAlertSound();
+        showToast(`🔄 ${section.name} — Recovery ${colorName(oppColor)} ₹90`, 'info');
+      }
+    } else {
+      // Bet 2 lost → full reset
+      section.loss2Phase = 'RGRG_VIRTUAL';
+      section.loss2ConsecLosses = 0;
+      section.loss2Bet1Color = null;
+      section.virtualLossCount = 0;
+      section.lockLossCount = 0;
+      section.strategyState = 'HUNTING';
+      section.patternDetected = false;
+      section.patternColors = null;
+      addLog(`❌ [${section.name}] Both bets LOST! Full reset.`, 'loss');
+    }
+    showToast(`❌ ${section.name} loss.`, 'error');
+  }
+  persistRgrgLockState();
+  return true;
 }
 
 
@@ -1874,7 +1939,13 @@ function processNewData(key, apiData) {
       const won = actualColor === resolvedBet.color;
       const strategy = state.selectedStrategy || 'SNIPER_3_LOSS_RGRG';
 
-      if (strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'CONTRARIAN_DOUBLE' || strategy === 'LOSS_2_RG_GR') {
+      if (strategy === 'LOSS_2_RG_GR') {
+        section.pendingBet = resolvedBet;
+        resolveLoss2Bet(key, period);
+        continue;
+      }
+
+      if (strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'CONTRARIAN_DOUBLE') {
         section.pendingBet = resolvedBet;
         resolveRgrgBet(key, period);
         continue;
@@ -1999,25 +2070,8 @@ function processNewData(key, apiData) {
       processCycleStrategy(key);
     }
   } else if (strategy === 'LOSS_2_RG_GR') {
-    // 2-Loss RG/GR strategy
-    if (!section.pendingBet) {
-      if (section.loss2Phase === 'WAIT_RG_GR') {
-        // Scan for RG/GR pattern to arm live bet
-        processLoss2RgGrStrategy(key);
-      } else if (section.loss2Phase === 'RGRG_VIRTUAL' && (section.strategyState === 'HUNTING' || section.strategyState === 'WAITING_FOR_TREND_BREAK')) {
-        // Check for trend break first (if waiting)
-        if (section.strategyState === 'WAITING_FOR_TREND_BREAK') {
-          if (hasTrendBreakSince(section.periods, previousLastPeriod)) {
-            section.strategyState = 'HUNTING';
-            addLog(`🔄 [${section.name}] Trend break. Re-hunting RGRG...`, 'info');
-          }
-        }
-        // Hunt for RGRG pattern (virtual)
-        if (section.strategyState === 'HUNTING') {
-          armBetFromCurrentPattern(key, newNextPeriod);
-        }
-      }
-    }
+    // 2-Loss RG/GR strategy — fully self-contained
+    processLoss2Strategy(key);
   } else {
     // Other strategies: trend break check + pattern hunting
     if (section.strategyState === 'WAITING_FOR_TREND_BREAK') {
