@@ -23,11 +23,10 @@ const CONFIG = {
   }
 };
 
-const DEFAULT_STRATEGY = 'LOSS_2_RG_GR';
+const DEFAULT_STRATEGY = 'RGRG_LOCK_RESET';
 const HIDDEN_STRATEGIES = new Set(['STREAK_5_CONTINUE']);
 
 function getInitialStrategy() {
-  // Only LOSS_2_RG_GR is available now — always use default
   localStorage.setItem('wingo-selected-strategy', DEFAULT_STRATEGY);
   return DEFAULT_STRATEGY;
 }
