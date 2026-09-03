@@ -23,11 +23,11 @@ const CONFIG = {
   }
 };
 
-const DEFAULT_STRATEGY = 'RGRG_LOCK_RESET';
+const DEFAULT_STRATEGY = 'LOSS_2_RG_GR';
 const HIDDEN_STRATEGIES = new Set(['STREAK_5_CONTINUE']);
 
 function getInitialStrategy() {
-  // Only RGRG_LOCK_RESET is available now — always use default
+  // Only LOSS_2_RG_GR is available now — always use default
   localStorage.setItem('wingo-selected-strategy', DEFAULT_STRATEGY);
   return DEFAULT_STRATEGY;
 }
@@ -94,7 +94,11 @@ for (const [key, info] of Object.entries(CONFIG.SECTIONS)) {
     liveRecovery: false,       // is next bet a recovery (opposite)?
     liveBetsUsed: 0,           // total live bets used in current super-cycle
     breakColor: null,          // color that caused trend break (R for RR, G for GG)
-    confirmColor: null         // opposite of breakColor — the color we wait for before betting
+    confirmColor: null,        // opposite of breakColor — the color we wait for before betting
+    // LOSS_2_RG_GR strategy state
+    loss2Phase: 'RGRG_VIRTUAL',  // 'RGRG_VIRTUAL' | 'WAIT_RG_GR' | 'BET_1' | 'BET_2'
+    loss2ConsecLosses: 0,        // consecutive virtual RGRG losses (need 2)
+    loss2Bet1Color: null         // color of Bet 1 (for opposite calc in Bet 2)
   };
 }
 
@@ -157,7 +161,7 @@ function opposite(c) {
 }
 
 function getStrategyPatternLength(strategy) {
-  if (strategy === 'RGRG_TREND_BREAK' || strategy === 'SNIPER_3_LOSS_RGRG' || strategy === 'RECOVERY_3_CHANCE' || strategy === 'ANTI_MARTINGALE_SELECT' || strategy === 'RGRG_LOCK_RESET') {
+  if (strategy === 'RGRG_TREND_BREAK' || strategy === 'SNIPER_3_LOSS_RGRG' || strategy === 'RECOVERY_3_CHANCE' || strategy === 'ANTI_MARTINGALE_SELECT' || strategy === 'RGRG_LOCK_RESET' || strategy === 'LOSS_2_RG_GR') {
     return 4;
   } else if (strategy === 'BREAK_OPPOSITE' || strategy === 'STREAK_BREAK_3' || strategy === 'CONTRARIAN_DOUBLE' || strategy === 'RGR_GRG_3') {
     return 3;
@@ -237,7 +241,7 @@ function persistDisabledSections() {
 }
 
 function isRgrgLockStrategy(strategy = state.selectedStrategy) {
-  return strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3';
+  return strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'LOSS_2_RG_GR';
 }
 
 function isRgrgSectionLocked(section, strategy = state.selectedStrategy) { return false; }
@@ -261,7 +265,8 @@ function persistRgrgLockState() {
 
   for (const [key, section] of Object.entries(state.sections)) {
     const count = Math.max(0, Number(section.virtualLossCount) || 0);
-    if (!count && !section.pendingBet) continue;
+    const hasLoss2State = section.loss2Phase !== 'RGRG_VIRTUAL' || section.loss2ConsecLosses > 0;
+    if (!count && !section.pendingBet && !hasLoss2State) continue;
     
     hasState = true;
     sections[key] = {
@@ -277,7 +282,10 @@ function persistRgrgLockState() {
       liveRecovery: section.liveRecovery || false,
       liveBetsUsed: section.liveBetsUsed || 0,
       breakColor: section.breakColor || null,
-      confirmColor: section.confirmColor || null
+      confirmColor: section.confirmColor || null,
+      loss2Phase: section.loss2Phase || 'RGRG_VIRTUAL',
+      loss2ConsecLosses: section.loss2ConsecLosses || 0,
+      loss2Bet1Color: section.loss2Bet1Color || null
     };
   }
 
@@ -326,6 +334,9 @@ function restoreRgrgLockState() {
       section.liveBetsUsed = saved.liveBetsUsed || 0;
       section.breakColor = saved.breakColor || null;
       section.confirmColor = saved.confirmColor || null;
+      section.loss2Phase = saved.loss2Phase || 'RGRG_VIRTUAL';
+      section.loss2ConsecLosses = saved.loss2ConsecLosses || 0;
+      section.loss2Bet1Color = saved.loss2Bet1Color || null;
     }
     syncRgrgSectionLocks();
   } catch (e) {
@@ -653,7 +664,7 @@ function sectionHasLiveAlternatingPattern(section) {
     .slice(-len)
     .map(period => getColor(period));
 
-  if (strategy === 'RGRG_TREND_BREAK' || strategy === 'SNIPER_3_LOSS_RGRG' || strategy === 'RECOVERY_3_CHANCE' || strategy === 'ANTI_MARTINGALE_SELECT' || strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3') {
+  if (strategy === 'RGRG_TREND_BREAK' || strategy === 'SNIPER_3_LOSS_RGRG' || strategy === 'RECOVERY_3_CHANCE' || strategy === 'ANTI_MARTINGALE_SELECT' || strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'LOSS_2_RG_GR') {
     return isAlternating(colors);
   } else if (strategy === 'CONTRARIAN_DOUBLE') {
     return colors[0] !== colors[1] && colors[1] === colors[2];
@@ -772,7 +783,7 @@ function armBetFromCurrentPattern(key, nextPeriod) {
 
   let betColor = null;
 
-  if (strategy === 'RGRG_TREND_BREAK' || strategy === 'SNIPER_3_LOSS_RGRG' || strategy === 'RECOVERY_3_CHANCE' || strategy === 'ANTI_MARTINGALE_SELECT' || strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3') {
+  if (strategy === 'RGRG_TREND_BREAK' || strategy === 'SNIPER_3_LOSS_RGRG' || strategy === 'RECOVERY_3_CHANCE' || strategy === 'ANTI_MARTINGALE_SELECT' || strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'LOSS_2_RG_GR') {
     betColor = section.patternColors[section.patternColors.length - 1];
   } else if (strategy === 'CONTRARIAN_DOUBLE') {
     betColor = section.patternColors[0];  // RGG→R, GRR→G (bet same as first = opposite of pair)
@@ -853,6 +864,15 @@ function armBetFromCurrentPattern(key, nextPeriod) {
         showToast(`🔔 ${section.name} — Signal #${section.virtualLossCount + 1} (${colorName(betColor)})`, 'info');
       }
     }
+  } else if (strategy === 'LOSS_2_RG_GR') {
+    // Always virtual — real bets come from the RG/GR sub-strategy
+    section.pendingBet = { color: betColor, period: nextPeriod, isVirtual: true };
+    section.strategyState = 'HUNTING';
+    persistRgrgLockState();
+    addLog(
+      `👁️ [${section.name}] Virtual RGRG ${section.patternColors.join('')} → ${colorName(betColor)} on #${formatPeriod(nextPeriod)}. Losses: ${section.loss2ConsecLosses}/2`,
+      'info'
+    );
   } else if (strategy === 'RGR_GRG_3') {
     if (section.virtualLossCount >= VIRTUAL_LOSS_TARGET) {
       section.pendingBet = { color: betColor, period: nextPeriod, isVirtual: false };
@@ -926,6 +946,78 @@ function resolveRgrgBet(key, period) {
 
   const vTarget = getVirtualLossTarget(state.selectedStrategy);
 
+  if (state.selectedStrategy === 'LOSS_2_RG_GR') {
+    // ════ LOSS_2_RG_GR: Custom virtual + live resolution ════
+    if (resolvedBet.isVirtual) {
+      if (won) {
+        section.loss2ConsecLosses = 0;
+        section.virtualLossCount = 0;
+        section.lockLossCount = 0;
+        section.strategyState = 'HUNTING';
+        addLog(`👁️ [${section.name}] Virtual WIN on #${formatPeriod(period.period)}. Consecutive losses reset.`, 'info');
+      } else {
+        section.loss2ConsecLosses++;
+        section.virtualLossCount = Math.min(VIRTUAL_LOSS_DOTS_MAX, section.loss2ConsecLosses);
+        section.lockLossCount = section.virtualLossCount;
+        if (section.loss2ConsecLosses >= 2) {
+          // 2 consecutive virtual losses! Activate RG/GR sub-strategy
+          section.loss2Phase = 'WAIT_RG_GR';
+          section.strategyState = 'READY_FOR_LIVE';
+          addLog(`🚨 [${section.name}] 2 virtual losses! ACTIVATED — waiting for RG/GR pattern...`, 'signal');
+          if (!state.isInitialLoad) {
+            play2LossAlertSound();
+            showToast(`🚨 ${section.name} — 2 losses! Waiting RG/GR...`, 'info');
+          }
+        } else {
+          section.strategyState = 'WAITING_FOR_TREND_BREAK';
+          addLog(`👁️ [${section.name}] Virtual LOSS on #${formatPeriod(period.period)}. ${section.loss2ConsecLosses}/2 losses.`, 'info');
+        }
+      }
+      persistRgrgLockState();
+      return true;
+    }
+    // LIVE bet resolution for LOSS_2_RG_GR
+    section.betHistory.push({ period: period.period, betColor: resolvedBet.color, actualColor, won });
+    hideSignalBanner();
+    if (won) {
+      section.totalWins++;
+      section.loss2Phase = 'RGRG_VIRTUAL';
+      section.loss2ConsecLosses = 0;
+      section.loss2Bet1Color = null;
+      section.virtualLossCount = 0;
+      section.lockLossCount = 0;
+      section.strategyState = 'HUNTING';
+      section.pendingBet = null;
+      addLog(`✅ [${section.name}] ${section.liveBetsUsed > 0 ? 'Bet 2' : 'Bet 1'} WIN! +₹${resolvedBet.betAmount ? (resolvedBet.betAmount * 0.96).toFixed(0) : '?'}. Reset!`, 'win');
+      playAlertSound();
+      showToast(`✅ ${section.name} WIN! Reset.`, 'success');
+    } else {
+      section.totalLosses++;
+      if (section.loss2Phase === 'BET_1') {
+        // Bet 1 lost → arm Bet 2 (opposite color, ₹90)
+        section.loss2Phase = 'BET_2';
+        const oppColor = opposite(resolvedBet.color);
+        section.pendingBet = { color: oppColor, period: section.nextPeriod || (period.period + 1), isVirtual: false, betAmount: 90 };
+        section.strategyState = 'SIGNAL_ACTIVE';
+        showTradeSignal(key);
+        addLog(`🔄 [${section.name}] Bet 1 LOSS! Recovery → ${colorName(oppColor)} ₹90 on #${formatPeriod(section.nextPeriod || (period.period + 1))}`, 'loss');
+      } else {
+        // Bet 2 lost (or any other) → full reset
+        section.loss2Phase = 'RGRG_VIRTUAL';
+        section.loss2ConsecLosses = 0;
+        section.loss2Bet1Color = null;
+        section.virtualLossCount = 0;
+        section.lockLossCount = 0;
+        section.strategyState = 'HUNTING';
+        addLog(`❌ [${section.name}] Both bets LOST! Full reset — waiting 2 new virtual losses.`, 'loss');
+      }
+      showToast(`❌ ${section.name} loss.`, 'error');
+    }
+    section.liveBetsUsed = 0;
+    persistRgrgLockState();
+    return true;
+  }
+
   if (resolvedBet.isVirtual) {
     if (won) {
       section.virtualLossCount = 0;
@@ -938,7 +1030,6 @@ function resolveRgrgBet(key, period) {
     } else {
       section.virtualLossCount = Math.min(VIRTUAL_LOSS_DOTS_MAX, section.virtualLossCount + 1);
       section.lockLossCount = section.virtualLossCount;
-      // Wait for trend break (RR or GG) before hunting next pattern
       section.strategyState = 'WAITING_FOR_TREND_BREAK';
       section.rgrgLiveLoss = false;
       addLog(
@@ -1309,6 +1400,49 @@ function processCycleStrategy(key) {
         showToast(`🔔 ${section.name} — RGRG #${section.cycleCount}/5`, 'info');
       }
     }
+  }
+}
+
+
+// ============ LOSS_2_RG_GR: RG/GR PATTERN SCAN ============
+// After 2 consecutive virtual RGRG losses, scan for RG or GR
+// in last 2 colors. If found, arm live bet on last color.
+function processLoss2RgGrStrategy(key) {
+  const section = state.sections[key];
+  if (section.disabled || section.pendingBet) return;
+  if (section.loss2Phase !== 'WAIT_RG_GR') return;
+
+  const periods = section.periods;
+  if (periods.length < 2) return;
+
+  const len = periods.length;
+  const curr = getColor(periods[len - 1]);
+  const prev = getColor(periods[len - 2]);
+
+  // Need RG or GR (alternating pair), skip RR/GG
+  if (curr === prev) return;
+
+  // RG → bet G, GR → bet R (last color)
+  const betColor = curr;
+  section.loss2Phase = 'BET_1';
+  section.loss2Bet1Color = betColor;
+  section.loss2ConsecLosses = 0;  // reset for next cycle
+  section.pendingBet = {
+    color: betColor,
+    period: section.nextPeriod,
+    isVirtual: false,
+    betAmount: 30
+  };
+  section.strategyState = 'SIGNAL_ACTIVE';
+  persistRgrgLockState();
+  showTradeSignal(key);
+  addLog(
+    `🎯 [${section.name}] ${prev}${curr} pattern! LIVE BET → ${colorName(betColor)} ₹30 on #${formatPeriod(section.nextPeriod)}`,
+    'signal'
+  );
+  if (!state.isInitialLoad) {
+    playAlertSound();
+    showToast(`🎯 ${section.name} — ${prev}${curr} → BET ${colorName(betColor)} ₹30!`, 'info');
   }
 }
 
@@ -1740,7 +1874,7 @@ function processNewData(key, apiData) {
       const won = actualColor === resolvedBet.color;
       const strategy = state.selectedStrategy || 'SNIPER_3_LOSS_RGRG';
 
-      if (strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'CONTRARIAN_DOUBLE') {
+      if (strategy === 'RGRG_LOCK_RESET' || strategy === 'RGR_GRG_3' || strategy === 'CONTRARIAN_DOUBLE' || strategy === 'LOSS_2_RG_GR') {
         section.pendingBet = resolvedBet;
         resolveRgrgBet(key, period);
         continue;
@@ -1863,6 +1997,26 @@ function processNewData(key, apiData) {
     // Cycle counting strategy — process new colors for cycle detection
     if (!section.pendingBet) {
       processCycleStrategy(key);
+    }
+  } else if (strategy === 'LOSS_2_RG_GR') {
+    // 2-Loss RG/GR strategy
+    if (!section.pendingBet) {
+      if (section.loss2Phase === 'WAIT_RG_GR') {
+        // Scan for RG/GR pattern to arm live bet
+        processLoss2RgGrStrategy(key);
+      } else if (section.loss2Phase === 'RGRG_VIRTUAL' && (section.strategyState === 'HUNTING' || section.strategyState === 'WAITING_FOR_TREND_BREAK')) {
+        // Check for trend break first (if waiting)
+        if (section.strategyState === 'WAITING_FOR_TREND_BREAK') {
+          if (hasTrendBreakSince(section.periods, previousLastPeriod)) {
+            section.strategyState = 'HUNTING';
+            addLog(`🔄 [${section.name}] Trend break. Re-hunting RGRG...`, 'info');
+          }
+        }
+        // Hunt for RGRG pattern (virtual)
+        if (section.strategyState === 'HUNTING') {
+          armBetFromCurrentPattern(key, newNextPeriod);
+        }
+      }
     }
   } else {
     // Other strategies: trend break check + pattern hunting
@@ -2083,6 +2237,16 @@ function renderSection(key) {
     stateLabel = `👁️ ${section.cycleCount}/5: Waiting Trend Break...`;
   } else if (currentStrategy === 'RGRG_LOCK_RESET' && section.cyclePhase === 'POST_BREAK_HUNTING') {
     stateLabel = `🔍 ${section.cycleCount}/5: Hunting Next RGRG...`;
+  } else if (currentStrategy === 'LOSS_2_RG_GR') {
+    if (section.loss2Phase === 'WAIT_RG_GR') {
+      stateLabel = '⏳ Wait RG/GR';
+    } else if (section.loss2Phase === 'BET_1') {
+      stateLabel = '🎯 Bet 1';
+    } else if (section.loss2Phase === 'BET_2') {
+      stateLabel = '🔄 Bet 2 Recovery';
+    } else if (section.loss2ConsecLosses > 0) {
+      stateLabel = `👁️ V-Loss: ${section.loss2ConsecLosses}/2`;
+    }
   } else if ((currentStrategy === 'RGR_GRG_3' || currentStrategy === 'CONTRARIAN_DOUBLE') && section.virtualLossCount >= getVirtualLossTarget(currentStrategy)) {
     stateLabel = `✅ Ready (${section.virtualLossCount} losses)`;
   } else if ((currentStrategy === 'RGR_GRG_3' || currentStrategy === 'CONTRARIAN_DOUBLE') && section.virtualLossCount > 0) {
@@ -2116,6 +2280,17 @@ function renderSection(key) {
   } else if (hasFreshSignalState(section)) {
     statusEl.textContent = 'Fresh Reset';
     statusEl.className = 'section-status status-watching';
+  } else if (currentStrategy === 'LOSS_2_RG_GR') {
+    if (section.loss2Phase === 'WAIT_RG_GR') {
+      statusEl.textContent = '✅ Ready';
+      statusEl.className = 'section-status status-profit';
+    } else if (section.loss2ConsecLosses > 0) {
+      statusEl.textContent = `V-Loss: ${section.loss2ConsecLosses}`;
+      statusEl.className = 'section-status status-pattern';
+    } else {
+      statusEl.textContent = 'Watching';
+      statusEl.className = 'section-status status-watching';
+    }
   } else if (section.patternDetected) {
     statusEl.textContent = 'Pattern!';
     statusEl.className = 'section-status status-pattern';
@@ -2134,6 +2309,8 @@ function renderSection(key) {
     cardEl.classList.add('signal-triggered');
     cardEl.classList.add(section.pendingBet.color === 'G' ? 'signal-green' : 'signal-red');
   } else if ((currentStrategy === 'RGRG_LOCK_RESET' || currentStrategy === 'RGR_GRG_3' || currentStrategy === 'CONTRARIAN_DOUBLE') && section.virtualLossCount >= getVirtualLossTarget(currentStrategy)) {
+    cardEl.classList.add('virtual-ready-highlight');
+  } else if (currentStrategy === 'LOSS_2_RG_GR' && section.loss2Phase === 'WAIT_RG_GR') {
     cardEl.classList.add('virtual-ready-highlight');
   } else if ((currentStrategy === 'RGRG_LOCK_RESET' || currentStrategy === 'RGR_GRG_3' || currentStrategy === 'CONTRARIAN_DOUBLE') && (section.pendingBet?.isVirtual || section.virtualLossCount > 0)) {
     cardEl.classList.add('virtual-tracking');

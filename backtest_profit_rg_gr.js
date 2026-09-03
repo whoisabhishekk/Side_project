@@ -35,8 +35,8 @@ const fs = require('fs');
 const path = require('path');
 
 // ─── Constants ───────────────────────────────────────────────
-const BET1_AMOUNT = 100;       // Bet 1 amount
-const BET2_AMOUNT = 300;       // Bet 2 amount (recovery)
+const BET1_AMOUNT = 30;        // Bet 1 amount
+const BET2_AMOUNT = 90;        // Bet 2 amount (recovery)
 const WIN_MULTIPLIER = 0.96;   // profit on win = bet * 0.96
 const PATTERN_LENGTH = 4;      // RGRG alternating detection length
 const VIRTUAL_LOSS_THRESHOLD = 2; // activate after 2 consecutive virtual losses

@@ -35,8 +35,10 @@
   </div>
 
   <!-- App Header -->
-  <header class="app-header" id="app-header">
-    <h1>🎰 WINGO STRATEGY</h1>
+  <header class="app-header">
+    <div class="header-container">
+      <h1 class="header-title">👑 WINGO PREDICTOR <span>v3.0 (2-Loss RG/GR)</span></h1>
+    </div>
     <div class="header-info">
       <span id="app-status" class="status-badge watching">WATCHING ALL</span>
       <span id="notification-status" class="status-badge watching" style="cursor: pointer;" onclick="requestNotificationPermission()">🔔 NO ALERTS</span>
@@ -67,7 +69,8 @@
     <div class="strategy-selector-row">
       <label for="strategy-select" class="strategy-select-label">Strategy Mode:</label>
       <select id="strategy-select" class="strategy-select-dropdown" onchange="changeStrategy(this.value)">
-        <option value="RGRG_LOCK_RESET">🎯 RGRG Cycle Count → Break Bet (4 cycles → bet break)</option>
+        <option value="LOSS_2_RG_GR">🎯 2-Loss → RG/GR Pattern (₹30 + ₹90 recovery)</option>
+        <option value="RGRG_LOCK_RESET">🔄 RGRG Cycle Count → Break Bet (5 cycles)</option>
         <option value="RGR_GRG_3">🔔 RGR/GRG 3-Pattern (RGR→R, GRG→G)</option>
       </select>
     </div>
