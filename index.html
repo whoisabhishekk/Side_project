@@ -35,7 +35,7 @@
   </div>
 
   <!-- App Header -->
-  <header class="app-header">
+  <header id="app-header" class="app-header">
     <div class="header-container">
       <h1 class="header-title">👑 WINGO PREDICTOR <span>v3.0 (2-Loss RG/GR)</span></h1>
     </div>
@@ -67,18 +67,17 @@
       </div>
     </div>
     <div class="strategy-selector-row">
-      <label for="strategy-select" class="strategy-select-label">Strategy Mode:</label>
-      <select id="strategy-select" class="strategy-select-dropdown" onchange="changeStrategy(this.value)">
-        <option value="RGRG_LOCK_RESET">🔄 RGRG Cycle Count → Break Bet (4 cycles)</option>
-        <option value="LOSS_2_RG_GR">🎯 2-Loss → RG/GR Pattern (₹30 + ₹90 recovery)</option>
-        <option value="RGR_GRG_3">🔔 RGR/GRG 3-Pattern (RGR→R, GRG→G)</option>
+      <label class="strategy-select-label">Strategy Mode:</label>
+      <span class="strategy-select-label" style="color: #4ade80; font-weight: bold;">🏆 Sniper 7-Loss + RGRG</span>
+      <select id="strategy-select" class="strategy-select-dropdown" style="display:none;">
+        <option value="SNIPER_3_LOSS_RGRG" selected>🏆 Sniper 7-Loss + RGRG</option>
       </select>
     </div>
     <div class="strategy-actions">
       <button id="fresh-signals-btn" class="control-button" onclick="startFreshSignalsNow()">
         Fresh Signals From Now
       </button>
-      <span class="strategy-hint">Current pattern aur active cycle reset karke nayi signals watch karo.</span>
+      <span class="strategy-hint">Current pending bets, levels aur virtual tracking reset karke nayi pattern watch karo.</span>
     </div>
   </section>
 
