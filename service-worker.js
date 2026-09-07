@@ -1,9 +1,9 @@
-const CACHE_NAME = 'wingo-strategy-v6-virtual7-update';
+const CACHE_NAME = 'wingo-strategy-v7-trend6-follow';
 const ASSETS = [
   './',
   './index.html',
-  './index.css?v=virtual7-update-20260627',
-  './app.js?v=virtual7-update-20260627',
+  './index.css?v=trend6-follow-20260907',
+  './app.js?v=trend6-follow-20260907',
   './manifest.json',
   './icon.png'
 ];
