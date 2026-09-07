@@ -109,6 +109,7 @@ for (const [key, info] of Object.entries(CONFIG.SECTIONS)) {
   };
 }
 
+
 // ============ UTILITY FUNCTIONS ============
 
 /** Get simplified color from period data */
@@ -155,6 +156,15 @@ const TREND6_CONFIG = {
   ALLOWED_SECTIONS: ['B', 'E'],
   WIN_MULTIPLIER: 0.96
 };
+
+// Auto-disable non-allowed sections for TREND6_FOLLOW
+if (state.selectedStrategy === 'TREND6_FOLLOW') {
+  for (const [key, section] of Object.entries(state.sections)) {
+    if (!TREND6_CONFIG.ALLOWED_SECTIONS.includes(key)) {
+      section.disabled = true;
+    }
+  }
+}
 
 const VIRTUAL_LOSS_TARGET = 10;
 const VIRTUAL_LOSS_DOTS_MAX = 10;
@@ -700,6 +710,8 @@ function sectionHasLiveAlternatingPattern(section) {
   } else if (strategy === 'STREAK_BREAK_3') {
     return colors[0] === colors[1] && colors[1] === colors[2];
   } else if (strategy === 'STREAK_5_CONTINUE') {
+    return colors.every(c => c === colors[0]);
+  } else if (strategy === 'TREND6_FOLLOW') {
     return colors.every(c => c === colors[0]);
   }
   return false;
