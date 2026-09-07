@@ -1703,7 +1703,6 @@ function scanHistoryForSection(section) {
     return;
   }
 
-  const strategy = state.selectedStrategy || 'SNIPER_3_LOSS_RGRG';
   const len = getStrategyPatternLength(strategy);
   let activeBet = null; // { color, period, isVirtual }
   let virtualLossCount = 0;
