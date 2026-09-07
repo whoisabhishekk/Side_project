@@ -337,8 +337,14 @@ function restoreRgrgLockState() {
       if (!section) continue;
 
       const target = getVirtualLossTarget(state.selectedStrategy);
-      section.virtualLossCount = Math.min(VIRTUAL_LOSS_DOTS_MAX, Math.max(0, Number(saved.virtualLossCount) || 0));
-      section.lockLossCount = section.virtualLossCount;
+      // TREND6_FOLLOW doesn't use virtual losses — always reset
+      if (state.selectedStrategy === 'TREND6_FOLLOW') {
+        section.virtualLossCount = 0;
+        section.lockLossCount = 0;
+      } else {
+        section.virtualLossCount = Math.min(VIRTUAL_LOSS_DOTS_MAX, Math.max(0, Number(saved.virtualLossCount) || 0));
+        section.lockLossCount = section.virtualLossCount;
+      }
       section.pendingBet = saved.pendingBet || null;
       // Restore saved state, or infer from virtualLossCount
       section.strategyState = saved.strategyState || (section.virtualLossCount >= target ? 'READY_FOR_LIVE' : 'HUNTING');
@@ -2637,6 +2643,9 @@ function renderSection(key) {
     stateLabel = '📊 Pattern Found';
   } else if (currentStrategy === 'RECOVERY_3_CHANCE' && section.recoveryAttempt > 0) {
     stateLabel = `🔄 Recovery ${section.recoveryAttempt}/3`;
+  } else if (currentStrategy === 'TREND6_FOLLOW') {
+    const lvl = section.trend6Level || 0;
+    stateLabel = lvl > 0 ? `⚠️ Next: Lv${lvl + 1} (₹${TREND6_CONFIG.BET_LADDER[lvl]})` : '🔍 Hunting 6-Streak';
   } else if (section.virtualLossCount > 0) {
     stateLabel = `🔍 V-Loss: ${section.virtualLossCount}/${VIRTUAL_LOSS_TARGET}`;
   }
