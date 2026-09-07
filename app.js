@@ -28,8 +28,8 @@ const HIDDEN_STRATEGIES = new Set(['STREAK_5_CONTINUE']);
 
 function getInitialStrategy() {
   const saved = localStorage.getItem('wingo-selected-strategy');
-  // Force update if the saved strategy was the 4-level martingale
-  if (saved === 'LOSS_2_RG_GR' || !saved) {
+  // Force update to TREND6_FOLLOW for all old strategies
+  if (saved !== 'TREND6_FOLLOW' || !saved) {
     localStorage.setItem('wingo-selected-strategy', DEFAULT_STRATEGY);
     return DEFAULT_STRATEGY;
   }

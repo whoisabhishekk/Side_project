@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wingo-strategy-v7-trend6-follow';
+const CACHE_NAME = 'wingo-strategy-v8-trend6-bugfix';
 const ASSETS = [
   './',
   './index.html',
