@@ -3088,28 +3088,28 @@ function renderStrategyPanel() {
     nextSignalText.textContent = 'Pattern detected! Signal will fire on next period.';
     nextSignalText.style.color = '';
   } else if (waitingSections.length > 0) {
-    modeText.textContent = '⏳ WAIT TREND';
+    modeText.textContent = '⏳ COOLDOWN';
     modeText.className = 'value reset-mode';
     activeSectionText.textContent = waitingSections.map(s => s.name).join(', ');
-    appStatus.textContent = 'WAIT TREND';
+    appStatus.textContent = 'COOLDOWN';
     appStatus.className = 'status-badge watching';
-    nextSignalText.textContent = 'Waiting for alternating trend to end before hunting next signal.';
+    nextSignalText.textContent = 'Waiting for trend to break before hunting next 6-streak.';
     nextSignalText.style.color = '';
   } else if (freshResetActive) {
     modeText.textContent = 'FRESH WATCH';
     modeText.className = 'value reset-mode';
-    activeSectionText.textContent = 'All Sections';
+    activeSectionText.textContent = 'Bcone + Emerd';
     appStatus.textContent = 'FRESH START';
     appStatus.className = 'status-badge watching';
     nextSignalText.textContent = 'Fresh reset active. Waiting for current trend to clear and new pattern to form.';
     nextSignalText.style.color = '';
   } else {
-    modeText.textContent = 'WATCHING';
+    modeText.textContent = '🔍 HUNTING';
     modeText.className = 'value watching-mode';
-    activeSectionText.textContent = 'All Sections';
-    appStatus.textContent = 'WATCHING ALL';
+    activeSectionText.textContent = 'Bcone + Emerd';
+    appStatus.textContent = 'HUNTING B+E';
     appStatus.className = 'status-badge watching';
-    nextSignalText.textContent = 'Monitoring all sections for RGRG/GRGR patterns...';
+    nextSignalText.textContent = 'Monitoring Bcone + Emerd for 6-same-color streaks...';
     nextSignalText.style.color = '';
   }
 }
