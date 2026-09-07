@@ -23,7 +23,7 @@ const CONFIG = {
   }
 };
 
-const DEFAULT_STRATEGY = 'SNIPER_3_LOSS_RGRG';
+const DEFAULT_STRATEGY = 'TREND6_FOLLOW';
 const HIDDEN_STRATEGIES = new Set(['STREAK_5_CONTINUE']);
 
 function getInitialStrategy() {
@@ -89,6 +89,9 @@ for (const [key, info] of Object.entries(CONFIG.SECTIONS)) {
     // Streak 5 Continue state
     streak5Level: 0,
     streak5TotalPNL: 0,
+    // Trend 6 Follow state
+    trend6Level: 0,
+    trend6TotalPNL: 0,
     profitLocked: false,
     // 4-Consecutive RGRG strategy state (RGRG_LOCK_RESET)
     cycleCount: 0,            // consecutive RGRG/GRGR patterns detected (0 to 4)
@@ -145,6 +148,14 @@ const STREAK5_CONFIG = {
   WIN_MULTIPLIER: 0.96
 };
 
+// ============ TREND 6 FOLLOW CONFIG ============
+const TREND6_CONFIG = {
+  STREAK_LENGTH: 6,
+  BET_LADDER: [50, 150],
+  ALLOWED_SECTIONS: ['B', 'E'],
+  WIN_MULTIPLIER: 0.96
+};
+
 const VIRTUAL_LOSS_TARGET = 10;
 const VIRTUAL_LOSS_DOTS_MAX = 10;
 const CONTRARIAN_VIRTUAL_LOSS_TARGET = 4;
@@ -171,6 +182,8 @@ function getStrategyPatternLength(strategy) {
     return 3;
   } else if (strategy === 'STREAK_5_CONTINUE') {
     return 5;
+  } else if (strategy === 'TREND6_FOLLOW') {
+    return 6;
   }
   return 4;
 }
@@ -769,6 +782,10 @@ function showTradeSignal(key) {
     const betAmt = STREAK5_CONFIG.BET_LADDER[section.streak5Level || 0];
     notifTitle = `🔥 5-Streak: ${section.name}`;
     notifBody = `Bet ${betColor} ₹${betAmt} (Lv${(section.streak5Level || 0) + 1}) on #${periodStr}!`;
+  } else if (strategy === 'TREND6_FOLLOW') {
+    const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level || 0];
+    notifTitle = `📈 Trend 6: ${section.name}`;
+    notifBody = `Bet ${betColor} ₹${betAmt} (Lv${(section.trend6Level || 0) + 1}) on #${periodStr}!`;
   } else if (strategy === 'RGRG_LOCK_RESET') {
     const betAmt = section.liveRecovery ? 90 : 30;
     const betLabel = section.liveRecovery ? 'Recovery' : 'LIVE';
@@ -793,6 +810,7 @@ function armBetFromCurrentPattern(key, nextPeriod) {
   if (strategy === 'ANTI_MARTINGALE_SELECT' && !AM_CONFIG.ALLOWED_SECTIONS.includes(key)) return false;
   if (strategy === 'ANTI_MARTINGALE_SELECT' && section.amStopped) return false;
   if (strategy === 'STREAK_5_CONTINUE' && !STREAK5_CONFIG.ALLOWED_SECTIONS.includes(key)) return false;
+  if (strategy === 'TREND6_FOLLOW' && !TREND6_CONFIG.ALLOWED_SECTIONS.includes(key)) return false;
   if (section.pendingBet || (section.strategyState !== 'HUNTING' && section.strategyState !== 'READY_FOR_LIVE')) return false;
 
   checkCurrentPattern(section);
@@ -809,6 +827,8 @@ function armBetFromCurrentPattern(key, nextPeriod) {
   } else if (strategy === 'STREAK_BREAK_3') {
     betColor = opposite(section.patternColors[section.patternColors.length - 1]);
   } else if (strategy === 'STREAK_5_CONTINUE') {
+    betColor = section.patternColors[section.patternColors.length - 1];
+  } else if (strategy === 'TREND6_FOLLOW') {
     betColor = section.patternColors[section.patternColors.length - 1];
   }
 
@@ -855,6 +875,15 @@ function armBetFromCurrentPattern(key, nextPeriod) {
     showTradeSignal(key);
     addLog(
       `🔥 [${section.name}] 5-Streak! ${section.patternColors.join('')} → Bet ${colorName(betColor)} ₹${betAmt} (Lv${section.streak5Level + 1}) on #${formatPeriod(nextPeriod)}`,
+      'signal'
+    );
+  } else if (strategy === 'TREND6_FOLLOW') {
+    const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level];
+    section.pendingBet = { color: betColor, period: nextPeriod, isVirtual: false, trend6BetAmount: betAmt };
+    section.strategyState = 'SIGNAL_ACTIVE';
+    showTradeSignal(key);
+    addLog(
+      `📈 [${section.name}] 6-Streak! ${section.patternColors.join('')} → Bet ${colorName(betColor)} ₹${betAmt} (Lv${section.trend6Level + 1}) on #${formatPeriod(nextPeriod)}`,
       'signal'
     );
   } else if (strategy === 'RGRG_LOCK_RESET') {
@@ -1648,6 +1677,13 @@ async function fetchAllSections() {
  * States: HUNTING → SIGNAL_ACTIVE → HUNTING (repeat)
  */
 function scanHistoryForSection(section) {
+  const strategy = state.selectedStrategy || 'SNIPER_3_LOSS_RGRG';
+  const key = Object.keys(state.sections).find(k => state.sections[k] === section);
+  if (strategy === 'TREND6_FOLLOW' && key && !TREND6_CONFIG.ALLOWED_SECTIONS.includes(key)) {
+    section.disabled = true; // explicitly disable it in UI
+    return;
+  }
+  
   const periods = getEligiblePeriodsForSignals(section);
 
   // Reset tracking for fresh scan
@@ -1728,6 +1764,10 @@ function scanHistoryForSection(section) {
             const betAmt = STREAK5_CONFIG.BET_LADDER[section.streak5Level];
             section.streak5TotalPNL += betAmt * STREAK5_CONFIG.WIN_MULTIPLIER;
             section.streak5Level = 0;
+          } else if (strategy === 'TREND6_FOLLOW') {
+            const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level];
+            section.trend6TotalPNL += betAmt * TREND6_CONFIG.WIN_MULTIPLIER;
+            section.trend6Level = 0;
           }
         } else {
           section.totalLosses++;
@@ -1747,6 +1787,13 @@ function scanHistoryForSection(section) {
             section.streak5Level++;
             if (section.streak5Level >= STREAK5_CONFIG.BET_LADDER.length) {
               section.streak5Level = 0;
+            }
+          } else if (strategy === 'TREND6_FOLLOW') {
+            const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level];
+            section.trend6TotalPNL -= betAmt;
+            section.trend6Level++;
+            if (section.trend6Level >= TREND6_CONFIG.BET_LADDER.length) {
+              section.trend6Level = 0;
             }
           }
           if (strategy === 'RECOVERY_3_CHANCE') {
@@ -1829,6 +1876,11 @@ function scanHistoryForSection(section) {
           patternDetected = true;
           betColor = patternColors[patternColors.length - 1];
         }
+      } else if (strategy === 'TREND6_FOLLOW') {
+        if (patternColors.every(c => c === patternColors[0])) {
+          patternDetected = true;
+          betColor = patternColors[patternColors.length - 1];
+        }
       }
 
       if (patternDetected && i + 1 < periods.length) {
@@ -1904,6 +1956,8 @@ function checkCurrentPattern(section) {
       currentIsPattern = latestColors[0] === latestColors[1] && latestColors[1] === latestColors[2];
     } else if (strategy === 'STREAK_5_CONTINUE') {
       currentIsPattern = latestColors.every(c => c === latestColors[0]);
+    } else if (strategy === 'TREND6_FOLLOW') {
+      currentIsPattern = latestColors.every(c => c === latestColors[0]);
     }
 
     if (currentIsPattern) {
@@ -1938,6 +1992,8 @@ function checkCurrentPattern(section) {
   } else if (strategy === 'STREAK_BREAK_3') {
     isPattern = sliceColors[0] === sliceColors[1] && sliceColors[1] === sliceColors[2];
   } else if (strategy === 'STREAK_5_CONTINUE') {
+    isPattern = sliceColors.every(c => c === sliceColors[0]);
+  } else if (strategy === 'TREND6_FOLLOW') {
     isPattern = sliceColors.every(c => c === sliceColors[0]);
   }
 
@@ -2226,6 +2282,11 @@ function processNewData(key, apiData) {
             section.streak5TotalPNL += betAmt * STREAK5_CONFIG.WIN_MULTIPLIER;
             section.streak5Level = 0;
             addLog(`💰 [${section.name}] Streak5 PNL: ₹${section.streak5TotalPNL.toFixed(1)} | Reset to Lv1`, 'info');
+          } else if (strategy === 'TREND6_FOLLOW') {
+            const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level];
+            section.trend6TotalPNL += betAmt * TREND6_CONFIG.WIN_MULTIPLIER;
+            section.trend6Level = 0;
+            addLog(`💰 [${section.name}] Trend6 PNL: ₹${section.trend6TotalPNL.toFixed(1)} | Reset to Lv1`, 'info');
           }
         } else {
           section.totalLosses++;
@@ -2270,6 +2331,16 @@ function processNewData(key, apiData) {
               addLog(`💀 [${section.name}] 4 consecutive losses! -₹150 cycle. Reset to Lv1`, 'loss');
             } else {
               addLog(`💰 [${section.name}] Streak5 PNL: ₹${section.streak5TotalPNL.toFixed(1)} | Next: Lv${section.streak5Level + 1} (₹${STREAK5_CONFIG.BET_LADDER[section.streak5Level]})`, 'info');
+            }
+          } else if (strategy === 'TREND6_FOLLOW') {
+            const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level];
+            section.trend6TotalPNL -= betAmt;
+            section.trend6Level++;
+            if (section.trend6Level >= TREND6_CONFIG.BET_LADDER.length) {
+              section.trend6Level = 0;
+              addLog(`💀 [${section.name}] 2 consecutive losses! Full reset.`, 'loss');
+            } else {
+              addLog(`💰 [${section.name}] Trend6 PNL: ₹${section.trend6TotalPNL.toFixed(1)} | Next: Lv${section.trend6Level + 1} (₹${TREND6_CONFIG.BET_LADDER[section.trend6Level]})`, 'info');
             }
           }
         }
@@ -2530,6 +2601,8 @@ function renderSection(key) {
     if (currentStrategy === 'RECOVERY_3_CHANCE') {
       const attemptNum = section.recoveryAttempt + 1;
       stateLabel = attemptNum === 1 ? '🎯 Signal #1' : attemptNum === 2 ? '🔄 Recovery #2' : '⚠️ LAST #3';
+    } else if (currentStrategy === 'TREND6_FOLLOW') {
+      stateLabel = `📈 LIVE Lv${section.trend6Level + 1}`;
     } else {
       stateLabel = '🎯 LIVE Signal';
     }
@@ -3145,6 +3218,9 @@ function renderTradeBanner(key) {
     } else if (strategy === 'STREAK_5_CONTINUE') {
       const betAmt = STREAK5_CONFIG.BET_LADDER[section.streak5Level || 0];
       colorEl.textContent = `🔥 ${betColorLabel} pe lagao! (₹${betAmt} Lv${(section.streak5Level || 0) + 1})`;
+    } else if (strategy === 'TREND6_FOLLOW') {
+      const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level || 0];
+      colorEl.textContent = `📈 ${betColorLabel} pe lagao! (₹${betAmt} Lv${(section.trend6Level || 0) + 1})`;
     } else if (strategy === 'RGRG_LOCK_RESET') {
       const betAmt = section.liveRecovery ? 90 : 30;
       const betLabel = section.liveRecovery ? '🔄 Recovery' : '🎯 LIVE';

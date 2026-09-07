@@ -346,6 +346,19 @@ const colorDB = (() => {
         const allData = await getAll();
         const stats = await getStats();
 
+        // Compact format: recordFields + array-of-arrays (same as backtest_data.json)
+        const recordFields = ['id', 'category', 'period', 'color', 'isGreen', 'isViolet', 'lastNum', 'timestamp'];
+        const compactRecords = allData.map(r => [
+            r.id,
+            r.category,
+            r.period,
+            r.color,
+            r.isGreen,
+            !!r.isViolet,
+            r.lastNum,
+            r.timestamp
+        ]);
+
         const exportObj = {
             exportDate: new Date().toISOString(),
             totalRecords: stats.total,
@@ -354,15 +367,16 @@ const colorDB = (() => {
                 from: stats.oldestRecord,
                 to: stats.newestRecord
             },
-            records: allData
+            recordFields: recordFields,
+            records: compactRecords
         };
 
         // Trigger browser download
-        const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(exportObj)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `color_data_${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `backtest_data.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
