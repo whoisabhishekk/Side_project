@@ -158,11 +158,13 @@ const TREND6_CONFIG = {
   MAX_DAILY_LOSSES: 8
 };
 
-// Auto-disable non-allowed sections for TREND6_FOLLOW
+// Auto-enable/disable sections for TREND6_FOLLOW
 if (state.selectedStrategy === 'TREND6_FOLLOW') {
   for (const [key, section] of Object.entries(state.sections)) {
-    if (!TREND6_CONFIG.ALLOWED_SECTIONS.includes(key)) {
-      section.disabled = true;
+    if (TREND6_CONFIG.ALLOWED_SECTIONS.includes(key)) {
+      section.disabled = false; // Force enable allowed sections
+    } else {
+      section.disabled = true;  // Disable non-allowed sections
     }
   }
 }
@@ -377,6 +379,16 @@ function restoreRgrgLockState() {
       section.lastKnownPeriod = saved.lastKnownPeriod || 0;
     }
     syncRgrgSectionLocks();
+    // Re-enforce TREND6 section enable/disable after restore
+    if (state.selectedStrategy === 'TREND6_FOLLOW') {
+      for (const [key, section] of Object.entries(state.sections)) {
+        if (TREND6_CONFIG.ALLOWED_SECTIONS.includes(key)) {
+          section.disabled = false;
+        } else {
+          section.disabled = true;
+        }
+      }
+    }
   } catch (e) {
     removeStorage(CONFIG.RGRG_LOCK_STORAGE_KEY);
   }
