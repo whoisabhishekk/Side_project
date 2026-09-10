@@ -3524,6 +3524,17 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Failed to restore disabled sections:', e);
     }
   }
+  // TREND6: Force-enable allowed sections regardless of saved state
+  if (state.selectedStrategy === 'TREND6_FOLLOW') {
+    for (const [key, section] of Object.entries(state.sections)) {
+      if (TREND6_CONFIG.ALLOWED_SECTIONS.includes(key)) {
+        section.disabled = false;
+      } else {
+        section.disabled = true;
+      }
+    }
+    persistDisabledSections();
+  }
 
   restoreFreshSignalState();
   restoreRgrgLockState();

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wingo-v11-sapre-fix';
+const CACHE_NAME = 'wingo-v12-sapre-fix2';
 const ASSETS = [
   './',
   './index.html',
