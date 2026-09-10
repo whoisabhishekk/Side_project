@@ -152,9 +152,10 @@ const STREAK5_CONFIG = {
 // ============ TREND 6 FOLLOW CONFIG ============
 const TREND6_CONFIG = {
   STREAK_LENGTH: 6,
-  BET_LADDER: [50, 150],
-  ALLOWED_SECTIONS: ['B', 'E'],
-  WIN_MULTIPLIER: 0.96
+  BET_LADDER: [70, 140],
+  ALLOWED_SECTIONS: ['S', 'B', 'E'],
+  WIN_MULTIPLIER: 0.96,
+  MAX_DAILY_LOSSES: 8
 };
 
 // Auto-disable non-allowed sections for TREND6_FOLLOW
@@ -829,6 +830,15 @@ function armBetFromCurrentPattern(key, nextPeriod) {
   if (strategy === 'ANTI_MARTINGALE_SELECT' && section.amStopped) return false;
   if (strategy === 'STREAK_5_CONTINUE' && !STREAK5_CONFIG.ALLOWED_SECTIONS.includes(key)) return false;
   if (strategy === 'TREND6_FOLLOW' && !TREND6_CONFIG.ALLOWED_SECTIONS.includes(key)) return false;
+  // Daily loss cap for TREND6
+  if (strategy === 'TREND6_FOLLOW' && TREND6_CONFIG.MAX_DAILY_LOSSES) {
+    const today = new Date().toDateString();
+    if (!state.trend6DailyLosses) state.trend6DailyLosses = { date: today, count: 0 };
+    if (state.trend6DailyLosses.date !== today) {
+      state.trend6DailyLosses = { date: today, count: 0 };
+    }
+    if (state.trend6DailyLosses.count >= TREND6_CONFIG.MAX_DAILY_LOSSES) return false;
+  }
   if (section.pendingBet || (section.strategyState !== 'HUNTING' && section.strategyState !== 'READY_FOR_LIVE')) return false;
 
   checkCurrentPattern(section);
@@ -2353,11 +2363,21 @@ function processNewData(key, apiData) {
             const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level];
             section.trend6TotalPNL -= betAmt;
             section.trend6Level++;
+            // Increment daily loss counter
+            const today = new Date().toDateString();
+            if (!state.trend6DailyLosses) state.trend6DailyLosses = { date: today, count: 0 };
+            if (state.trend6DailyLosses.date !== today) state.trend6DailyLosses = { date: today, count: 0 };
+            state.trend6DailyLosses.count++;
+            const remaining = TREND6_CONFIG.MAX_DAILY_LOSSES - state.trend6DailyLosses.count;
             if (section.trend6Level >= TREND6_CONFIG.BET_LADDER.length) {
               section.trend6Level = 0;
-              addLog(`💀 [${section.name}] 2 consecutive losses! Full reset.`, 'loss');
+              addLog(`💀 [${section.name}] 2 consecutive losses! Full reset. (Daily: ${state.trend6DailyLosses.count}/${TREND6_CONFIG.MAX_DAILY_LOSSES})`, 'loss');
             } else {
               addLog(`💰 [${section.name}] Trend6 PNL: ₹${section.trend6TotalPNL.toFixed(1)} | Next: Lv${section.trend6Level + 1} (₹${TREND6_CONFIG.BET_LADDER[section.trend6Level]})`, 'info');
+            }
+            if (remaining <= 0) {
+              addLog(`🛑 Daily loss cap reached (${TREND6_CONFIG.MAX_DAILY_LOSSES}/${TREND6_CONFIG.MAX_DAILY_LOSSES}). No more bets today.`, 'loss');
+              showToast('🛑 Daily loss cap reached! No more bets today.', 'error');
             }
           }
         }
@@ -3098,7 +3118,7 @@ function renderStrategyPanel() {
   } else if (freshResetActive) {
     modeText.textContent = 'FRESH WATCH';
     modeText.className = 'value reset-mode';
-    activeSectionText.textContent = 'Bcone + Emerd';
+    activeSectionText.textContent = 'Sapre + Bcone + Emerd';
     appStatus.textContent = 'FRESH START';
     appStatus.className = 'status-badge watching';
     nextSignalText.textContent = 'Fresh reset active. Waiting for current trend to clear and new pattern to form.';
@@ -3106,10 +3126,10 @@ function renderStrategyPanel() {
   } else {
     modeText.textContent = '🔍 HUNTING';
     modeText.className = 'value watching-mode';
-    activeSectionText.textContent = 'Bcone + Emerd';
-    appStatus.textContent = 'HUNTING B+E';
+    activeSectionText.textContent = 'Sapre + Bcone + Emerd';
+    appStatus.textContent = 'HUNTING S+B+E';
     appStatus.className = 'status-badge watching';
-    nextSignalText.textContent = 'Monitoring Bcone + Emerd for 6-same-color streaks...';
+    nextSignalText.textContent = 'Monitoring Sapre + Bcone + Emerd for 6-same-color streaks...';
     nextSignalText.style.color = '';
   }
 }

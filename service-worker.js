@@ -1,9 +1,9 @@
-const CACHE_NAME = 'wingo-v9-trend6-final';
+const CACHE_NAME = 'wingo-v10-optimized';
 const ASSETS = [
   './',
   './index.html',
-  './index.css?v=trend6-final-20260908',
-  './app.js?v=trend6-final-20260908',
+  './index.css?v=opt-20260910',
+  './app.js?v=opt-20260910',
   './manifest.json',
   './icon.png'
 ];
