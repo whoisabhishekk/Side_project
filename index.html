@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=flat100-20260911">
+  <link rel="stylesheet" href="index.css?v=ladder-20260911">
 </head>
 <body>
 
@@ -37,7 +37,7 @@
   <!-- App Header -->
   <header id="app-header" class="app-header">
     <div class="header-container">
-      <h1 class="header-title">📈 WINGO PREDICTOR <span>v5.0 — Flat ₹100</span></h1>
+      <h1 class="header-title">📈 WINGO PREDICTOR <span>v6.0 — Ladder ₹80/₹240</span></h1>
     </div>
     <div class="header-info">
       <span id="app-status" class="status-badge watching">WATCHING ALL</span>
@@ -69,7 +69,7 @@
     </div>
     <div class="strategy-selector-row">
       <label class="strategy-select-label">Strategy Mode:</label>
-      <span class="strategy-select-label" style="color: #4ade80; font-weight: bold;">📈 Trend 6 Follow (S+B+E) Flat ₹100</span>
+      <span class="strategy-select-label" style="color: #4ade80; font-weight: bold;">📈 Trend 6 Follow (S+B+E) ₹80/₹240</span>
       <select id="strategy-select" class="strategy-select-dropdown" style="display:none;">
         <option value="TREND6_FOLLOW" selected>📈 Trend 6 Follow (B+E)</option>
       </select>
@@ -78,7 +78,7 @@
       <button id="fresh-signals-btn" class="control-button" onclick="startFreshSignalsNow()">
         Fresh Signals From Now
       </button>
-      <span class="strategy-hint">6 same colors dikhne pe ₹100 flat bet lagao. Max 8 losses/day. Zero loss days backtest mein! 🔥</span>
+      <span class="strategy-hint">6 same colors dikhne pe bet lagao. Bet: ₹80 → ₹240 recovery. Max 8 losses/day.</span>
     </div>
   </section>
 
@@ -340,6 +340,6 @@
   <div id="toast" class="toast"></div>
 
   <script src="colorDB.js?v=1"></script>
-  <script src="app.js?v=flat100-20260911"></script>
+  <script src="app.js?v=ladder-20260911"></script>
 </body>
 </html>

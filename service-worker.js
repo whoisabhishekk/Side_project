@@ -1,9 +1,9 @@
-const CACHE_NAME = 'wingo-v13-flat100';
+const CACHE_NAME = 'wingo-v14-ladder';
 const ASSETS = [
   './',
   './index.html',
-  './index.css?v=flat100-20260911',
-  './app.js?v=flat100-20260911',
+  './index.css?v=ladder-20260911',
+  './app.js?v=ladder-20260911',
   './manifest.json',
   './icon.png'
 ];
