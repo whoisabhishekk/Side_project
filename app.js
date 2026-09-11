@@ -152,7 +152,7 @@ const STREAK5_CONFIG = {
 // ============ TREND 6 FOLLOW CONFIG ============
 const TREND6_CONFIG = {
   STREAK_LENGTH: 6,
-  BET_LADDER: [70, 140],
+  BET_LADDER: [100],
   ALLOWED_SECTIONS: ['S', 'B', 'E'],
   WIN_MULTIPLIER: 0.96,
   MAX_DAILY_LOSSES: 8
@@ -400,11 +400,24 @@ function hasFreshSignalState(section) {
 
 // ============ SOUND SYSTEM ============
 let audioCtx = null;
+let masterGain = null;
+let soundEnabled = true;
 
 function ensureAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1.0;
+    masterGain.connect(audioCtx.destination);
+  }
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
+}
+
+/** Get the master output node — all sounds connect here */
+function getAudioOutput() {
+  ensureAudioCtx();
+  return masterGain;
 }
 
 // Unlock AudioContext on first user interaction (required by browsers)
@@ -415,14 +428,43 @@ function ensureAudioCtx() {
   }, { once: true });
 });
 
+/** Toggle sound on/off */
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const el = document.getElementById('sound-toggle');
+  if (el) {
+    if (soundEnabled) {
+      el.textContent = '🔊 SOUND ON';
+      el.style.backgroundColor = 'var(--color-green)';
+      el.style.color = '#fff';
+    } else {
+      el.textContent = '🔇 SOUND OFF';
+      el.style.backgroundColor = 'var(--color-red)';
+      el.style.color = '#fff';
+    }
+  }
+  localStorage.setItem('wingo-sound-enabled', soundEnabled ? '1' : '0');
+}
+window.toggleSound = toggleSound;
+
+// Restore sound preference
+(function() {
+  const saved = localStorage.getItem('wingo-sound-enabled');
+  if (saved === '0') {
+    soundEnabled = false;
+  }
+})();
+
 /** Premium alert sound — ascending chime with harmonics */
 function playAlertSound() {
+  if (!soundEnabled) return;
   const now = Date.now();
   if (now - state.lastSignalSoundTime < 3000) return;
   state.lastSignalSoundTime = now;
 
   try {
     const ctx = ensureAudioCtx();
+    const out = getAudioOutput();
     const t = ctx.currentTime;
 
     // Ascending chime notes (C5, E5, G5, C6)
@@ -438,7 +480,7 @@ function playAlertSound() {
       gain.gain.linearRampToValueAtTime(0.22, t + delay + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.4);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(out);
       osc.start(t + delay);
       osc.stop(t + delay + 0.4);
 
@@ -451,7 +493,7 @@ function playAlertSound() {
       gain2.gain.linearRampToValueAtTime(0.06, t + delay + 0.02);
       gain2.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.25);
       osc2.connect(gain2);
-      gain2.connect(ctx.destination);
+      gain2.connect(out);
       osc2.start(t + delay);
       osc2.stop(t + delay + 0.25);
     });
@@ -465,7 +507,7 @@ function playAlertSound() {
     subGain.gain.setValueAtTime(0.3, t);
     subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
     sub.connect(subGain);
-    subGain.connect(ctx.destination);
+    subGain.connect(out);
     sub.start(t);
     sub.stop(t + 0.3);
 
@@ -476,8 +518,10 @@ function playAlertSound() {
 
 /** Siren alert sound for signal after 2+ losses */
 function play2LossAlertSound() {
+  if (!soundEnabled) return;
   try {
     const ctx = ensureAudioCtx();
+    const out = getAudioOutput();
     const t = ctx.currentTime;
 
     // Siren sweep: low → high → low
@@ -493,7 +537,7 @@ function play2LossAlertSound() {
     sirenGain.gain.setValueAtTime(0.35, t + 1.0);
     sirenGain.gain.exponentialRampToValueAtTime(0.001, t + 1.3);
     siren.connect(sirenGain);
-    sirenGain.connect(ctx.destination);
+    sirenGain.connect(out);
     siren.start(t);
     siren.stop(t + 1.3);
 
@@ -506,7 +550,7 @@ function play2LossAlertSound() {
     subGain.gain.setValueAtTime(0.45, t);
     subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
     sub.connect(subGain);
-    subGain.connect(ctx.destination);
+    subGain.connect(out);
     sub.start(t);
     sub.stop(t + 0.4);
   } catch (e) {
@@ -522,8 +566,10 @@ function play2LossAlertSound() {
  * This is the MAIN sound that plays when a trade signal arrives
  */
 function playTradeReadySound() {
+  if (!soundEnabled) return;
   try {
     const ctx = ensureAudioCtx();
+    const out = getAudioOutput();
     const t = ctx.currentTime;
 
     // ── LOUD ALARM: single alert beep ──
@@ -540,7 +586,7 @@ function playTradeReadySound() {
       sirenGain.gain.setValueAtTime(0.4, t + offset + 0.25);
       sirenGain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.35);
       siren.connect(sirenGain);
-      sirenGain.connect(ctx.destination);
+      sirenGain.connect(out);
       siren.start(t + offset);
       siren.stop(t + offset + 0.35);
 
@@ -553,7 +599,7 @@ function playTradeReadySound() {
       beepGain.gain.setValueAtTime(0.25, t + offset + 0.2);
       beepGain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.3);
       beep.connect(beepGain);
-      beepGain.connect(ctx.destination);
+      beepGain.connect(out);
       beep.start(t + offset);
       beep.stop(t + offset + 0.3);
     }
@@ -578,7 +624,7 @@ function playTradeReadySound() {
       gain.gain.setValueAtTime(0.3, start + note.dur * 0.6);
       gain.gain.exponentialRampToValueAtTime(0.001, start + note.dur);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(out);
       osc.start(start);
       osc.stop(start + note.dur);
     });
@@ -592,7 +638,7 @@ function playTradeReadySound() {
     boomGain.gain.setValueAtTime(0.5, t);
     boomGain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
     boom.connect(boomGain);
-    boomGain.connect(ctx.destination);
+    boomGain.connect(out);
     boom.start(t);
     boom.stop(t + 0.5);
 
@@ -814,9 +860,8 @@ function showTradeSignal(key) {
     notifTitle = `🔥 5-Streak: ${section.name}`;
     notifBody = `Bet ${betColor} ₹${betAmt} (Lv${(section.streak5Level || 0) + 1}) on #${periodStr}!`;
   } else if (strategy === 'TREND6_FOLLOW') {
-    const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level || 0];
     notifTitle = `📈 Trend 6: ${section.name}`;
-    notifBody = `Bet ${betColor} ₹${betAmt} (Lv${(section.trend6Level || 0) + 1}) on #${periodStr}!`;
+    notifBody = `Bet ${betColor} ₹100 on #${periodStr}!`;
   } else if (strategy === 'RGRG_LOCK_RESET') {
     const betAmt = section.liveRecovery ? 90 : 30;
     const betLabel = section.liveRecovery ? 'Recovery' : 'LIVE';
@@ -923,7 +968,7 @@ function armBetFromCurrentPattern(key, nextPeriod) {
     section.strategyState = 'SIGNAL_ACTIVE';
     showTradeSignal(key);
     addLog(
-      `📈 [${section.name}] 6-Streak! ${section.patternColors.join('')} → Bet ${colorName(betColor)} ₹${betAmt} (Lv${section.trend6Level + 1}) on #${formatPeriod(nextPeriod)}`,
+      `📈 [${section.name}] 6-Streak! ${section.patternColors.join('')} → Bet ${colorName(betColor)} ₹100 on #${formatPeriod(nextPeriod)}`,
       'signal'
     );
   } else if (strategy === 'RGRG_LOCK_RESET') {
@@ -2651,7 +2696,7 @@ function renderSection(key) {
       const attemptNum = section.recoveryAttempt + 1;
       stateLabel = attemptNum === 1 ? '🎯 Signal #1' : attemptNum === 2 ? '🔄 Recovery #2' : '⚠️ LAST #3';
     } else if (currentStrategy === 'TREND6_FOLLOW') {
-      stateLabel = `📈 LIVE Lv${section.trend6Level + 1}`;
+      stateLabel = '📈 LIVE ₹100';
     } else {
       stateLabel = '🎯 LIVE Signal';
     }
@@ -2688,8 +2733,7 @@ function renderSection(key) {
   } else if (currentStrategy === 'RECOVERY_3_CHANCE' && section.recoveryAttempt > 0) {
     stateLabel = `🔄 Recovery ${section.recoveryAttempt}/3`;
   } else if (currentStrategy === 'TREND6_FOLLOW') {
-    const lvl = section.trend6Level || 0;
-    stateLabel = lvl > 0 ? `⚠️ Next: Lv${lvl + 1} (₹${TREND6_CONFIG.BET_LADDER[lvl]})` : '🔍 Hunting 6-Streak';
+    stateLabel = '🔍 Hunting 6-Streak';
   } else if (section.virtualLossCount > 0) {
     stateLabel = `🔍 V-Loss: ${section.virtualLossCount}/${VIRTUAL_LOSS_TARGET}`;
   }
@@ -3271,8 +3315,7 @@ function renderTradeBanner(key) {
       const betAmt = STREAK5_CONFIG.BET_LADDER[section.streak5Level || 0];
       colorEl.textContent = `🔥 ${betColorLabel} pe lagao! (₹${betAmt} Lv${(section.streak5Level || 0) + 1})`;
     } else if (strategy === 'TREND6_FOLLOW') {
-      const betAmt = TREND6_CONFIG.BET_LADDER[section.trend6Level || 0];
-      colorEl.textContent = `📈 ${betColorLabel} pe lagao! (₹${betAmt} Lv${(section.trend6Level || 0) + 1})`;
+      colorEl.textContent = `📈 ₹100 ${betColorLabel} pe lagao!`;
     } else if (strategy === 'RGRG_LOCK_RESET') {
       const betAmt = section.liveRecovery ? 90 : 30;
       const betLabel = section.liveRecovery ? '🔄 Recovery' : '🎯 LIVE';
@@ -3555,6 +3598,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initialize();
   updateNotificationStatus();
+  // Restore sound toggle UI
+  const soundEl = document.getElementById('sound-toggle');
+  if (soundEl && !soundEnabled) {
+    soundEl.textContent = '🔇 SOUND OFF';
+    soundEl.style.backgroundColor = 'var(--color-red)';
+    soundEl.style.color = '#fff';
+  }
 });
 
 // Register Service Worker for PWA

@@ -1,9 +1,9 @@
-const CACHE_NAME = 'wingo-v12-sapre-fix2';
+const CACHE_NAME = 'wingo-v13-flat100';
 const ASSETS = [
   './',
   './index.html',
-  './index.css?v=opt-20260910',
-  './app.js?v=opt-20260910',
+  './index.css?v=flat100-20260911',
+  './app.js?v=flat100-20260911',
   './manifest.json',
   './icon.png'
 ];
