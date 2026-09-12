@@ -402,6 +402,7 @@ function hasFreshSignalState(section) {
 let autoTradeEnabled = false;
 let cooeToken = '';
 let autoTradeLog = [];
+let lastAutoTradedPeriod = {}; // Track last auto-traded period per section to prevent duplicates
 const AUTO_TRADE_MAX_BET = 300; // Safety: max ₹300 per bet
 
 // Restore auto-trade settings from localStorage
@@ -518,24 +519,68 @@ async function placeCooeTradeAPI(category, betAmount, period, guessType) {
 
 /**
  * Called from showTradeSignal when auto-trade is ON
+ * Now async: verifies period, checks timing, uses exact signal amount
  */
-function autoTradeOnSignal(key) {
+async function autoTradeOnSignal(key) {
   if (!autoTradeEnabled || !cooeToken) return;
 
   const section = state.sections[key];
   if (!section.pendingBet || section.pendingBet.isVirtual) return;
 
+  const period = section.pendingBet.period;
+
+  // ── DUPLICATE GUARD: Don't bet twice on same period for same section ──
+  if (lastAutoTradedPeriod[key] === period) {
+    addLog(`🔁 [AUTO-TRADE] Already traded on ${section.name} period #${String(period).slice(-3)}, skipping duplicate.`, 'info');
+    return;
+  }
+
+  // ── TIMING CHECK: Ensure enough time remains in the period ──
+  const secondsLeft = getSecondsUntilNextBoundary();
+  const MIN_BET_WINDOW = 30; // Minimum seconds required to safely place bet
+
+  if (secondsLeft < MIN_BET_WINDOW) {
+    addLog(`⏰ [AUTO-TRADE] Skipped ${section.name}! Only ${secondsLeft}s left in period. Need ${MIN_BET_WINDOW}s minimum.`, 'error');
+    showToast(`⏰ Auto-bet skipped: ${secondsLeft}s left, need ${MIN_BET_WINDOW}s`, 'error');
+    return;
+  }
+
+  // ── BET AMOUNT: Use exact amount from the signal (₹80 for L1, ₹240 for L2, etc.) ──
   const strategy = state.selectedStrategy;
-  let betAmount = 80; // Default L1
+  let betAmount = 10; // Safe fallback
 
   if (strategy === 'TREND6_FOLLOW') {
-    betAmount = TREND6_CONFIG.BET_LADDER[section.trend6Level || 0];
+    // Use the bet amount stored in pendingBet (set at signal time) — this is the exact signal amount
+    betAmount = section.pendingBet.trend6BetAmount || TREND6_CONFIG.BET_LADDER[section.trend6Level || 0];
+  } else if (strategy === 'STREAK_5_CONTINUE') {
+    betAmount = section.pendingBet.streak5BetAmount || STREAK5_CONFIG.BET_LADDER[section.streak5Level || 0];
+  } else if (strategy === 'RECOVERY_3_CHANCE') {
+    betAmount = 10;
+  } else {
+    betAmount = 10;
   }
 
   const guessType = section.pendingBet.color; // 'G' or 'R'
-  const period = section.pendingBet.period;
 
-  placeCooeTradeAPI(key, betAmount, period, guessType);
+  // ── PERIOD SYNC: Fetch fresh period to ensure we bet on the RIGHT period ──
+  let actualPeriod = period;
+  try {
+    const freshData = await fetchSectionData(key);
+    if (freshData && freshData.next_period) {
+      if (freshData.next_period !== period) {
+        addLog(`🔄 [AUTO-TRADE] Period corrected: #${String(period).slice(-3)} → #${String(freshData.next_period).slice(-3)}`, 'info');
+        actualPeriod = freshData.next_period;
+        section.pendingBet.period = actualPeriod; // Update pending bet too
+      }
+    }
+  } catch (e) {
+    addLog(`⚠️ [AUTO-TRADE] Period verify failed, using original: #${String(period).slice(-3)}`, 'info');
+  }
+
+  // ── PLACE BET ──
+  addLog(`🤖 [AUTO-TRADE] Placing: ${guessType} ₹${betAmount} on ${section.name} #${String(actualPeriod).slice(-3)} | ${secondsLeft}s remaining`, 'signal');
+  lastAutoTradedPeriod[key] = actualPeriod; // Mark as traded BEFORE API call
+  placeCooeTradeAPI(key, betAmount, actualPeriod, guessType);
 }
 
 function toggleAutoTrade() {
@@ -3656,6 +3701,7 @@ function getSecondsUntilNextBoundary() {
 function scheduleNextBoundaryFetch() {
   // Clear any existing timers
   clearTimeout(state.nextBoundaryTimer);
+  clearTimeout(state.boundaryFollowUp0);
   clearTimeout(state.boundaryFollowUp1);
   clearTimeout(state.boundaryFollowUp2);
 
@@ -3665,6 +3711,11 @@ function scheduleNextBoundaryFetch() {
     state.lastBoundaryFetch = Date.now();
     addLog('⏰ 3-min boundary hit! Fetching new color...', 'info');
     await refresh();
+
+    // Ultra-fast follow-up at +1 second for quickest signal detection
+    state.boundaryFollowUp0 = setTimeout(async () => {
+      await refresh();
+    }, 1000);
 
     // Follow-up fetch at +3 seconds (API might update slightly late)
     state.boundaryFollowUp1 = setTimeout(async () => {

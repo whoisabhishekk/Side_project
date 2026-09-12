@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wingo-v19-autotrade';
+const CACHE_NAME = 'wingo-v20-autotrade-sync';
 const ASSETS = [
   './',
   './index.html',
