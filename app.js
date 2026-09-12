@@ -457,32 +457,45 @@ async function placeCooeTradeAPI(category, betAmount, period, guessType) {
   };
 
   try {
-    addLog(`🤖 [AUTO-TRADE] Placing ₹${betAmount} on ${guessType === 'G' ? 'GREEN' : 'RED'} | ${category} | Period #${String(period).slice(-3)}`, 'signal');
+    // Convert internal color code to Cooe API format
+    const apiGuessType = guessType === 'G' ? 'Green' : 'Red';
+    addLog(`🤖 [AUTO-TRADE] Placing ₹${betAmount} on ${apiGuessType.toUpperCase()} | ${category} | Period #${String(period).slice(-3)}`, 'signal');
+
+    const requestBody = {
+      token: cooeToken,
+      category: category,
+      contract_money: Number(betAmount),
+      contract_count: 1,
+      period: String(period),
+      number: -1,
+      guess_type: apiGuessType
+    };
+
+    // Debug: log the exact request being sent
+    console.log('[AUTO-TRADE] Request:', JSON.stringify(requestBody));
 
     const resp = await fetch('/api/trade', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        token: cooeToken,
-        category: category,
-        contract_money: betAmount,
-        contract_count: 1,
-        period: String(period),
-        number: -1,
-        guess_type: guessType
-      })
+      body: JSON.stringify(requestBody)
     });
 
     const data = await resp.json();
 
-    if (resp.ok && !data.error && data.code !== 400 && data.code !== 401) {
+    // Debug: log the raw API response
+    console.log('[AUTO-TRADE] Response:', JSON.stringify(data));
+    addLog(`📋 [AUTO-TRADE] API Response: code=${data.code}, msg=${data.msg || data.message || 'N/A'}`, 'info');
+
+    // Cooe API returns code: 200 on actual success
+    if (resp.ok && data.code === 200) {
       logEntry.status = 'SUCCESS';
-      addLog(`✅ [AUTO-TRADE] BET PLACED! ₹${betAmount} ${guessType === 'G' ? 'GREEN' : 'RED'} on ${category} #${String(period).slice(-3)}`, 'profit');
-      showToast(`🤖 Auto-Trade: ₹${betAmount} ${guessType === 'G' ? 'GREEN' : 'RED'} placed!`, 'success');
+      addLog(`✅ [AUTO-TRADE] BET PLACED! ₹${betAmount} ${apiGuessType.toUpperCase()} on ${category} #${String(period).slice(-3)}`, 'profit');
+      showToast(`🤖 Auto-Trade: ₹${betAmount} ${apiGuessType.toUpperCase()} placed!`, 'success');
     } else {
       logEntry.status = 'FAILED';
-      logEntry.error = data.error || data.msg || data.detail || data.message || 'Unknown error';
-      addLog(`❌ [AUTO-TRADE] FAILED: ${logEntry.error}`, 'error');
+      logEntry.error = data.msg || data.error || data.detail || data.message || `API code: ${data.code}`;
+      logEntry.rawResponse = data;
+      addLog(`❌ [AUTO-TRADE] FAILED: ${logEntry.error} (code: ${data.code})`, 'error');
       showToast(`❌ Auto-Trade Failed: ${logEntry.error}`, 'error');
     }
 
@@ -574,13 +587,14 @@ async function testAutoTrade() {
   showToast('⏳ Testing API... Please wait', 'info');
   const res = await placeCooeTradeAPI('P', 10, testPeriod, 'G');
   if (res.success) {
-    alert("✅ API Response OK!\n\nRaw Data:\n" + JSON.stringify(res.data) + "\n\nAgar paise nahi kate, toh message dhyaan se padho.");
+    alert("✅ BET PLACED SUCCESSFULLY!\n\nCode: " + (res.data?.code || 'N/A') + "\nMsg: " + (res.data?.msg || 'N/A') + "\n\nRaw Data:\n" + JSON.stringify(res.data, null, 2));
   } else {
     let errMsg = res.error || "Unknown Error";
-    if (errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('invalid')) {
-      alert("❌ ERROR: Token Invalid ya Expire ho gaya hai!\n\nDetails: " + errMsg + "\nRaw:\n" + JSON.stringify(res.data || ""));
+    const rawStr = JSON.stringify(res.data || "", null, 2);
+    if (errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('invalid') || errMsg.toLowerCase().includes('expire')) {
+      alert("❌ ERROR: Token Invalid ya Expire ho gaya hai!\n\nCode: " + (res.data?.code || 'N/A') + "\nDetails: " + errMsg + "\n\nRaw:\n" + rawStr);
     } else {
-      alert("❌ ERROR: " + errMsg + "\nRaw:\n" + JSON.stringify(res.data || ""));
+      alert("❌ ERROR: " + errMsg + "\n\nCode: " + (res.data?.code || 'N/A') + "\nRaw:\n" + rawStr);
     }
   }
 }
