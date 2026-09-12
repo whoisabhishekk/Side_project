@@ -574,13 +574,13 @@ async function testAutoTrade() {
   showToast('⏳ Testing API... Please wait', 'info');
   const res = await placeCooeTradeAPI('P', 10, testPeriod, 'G');
   if (res.success) {
-    alert("✅ SUCCESS! Token aur API sahi kaam kar raha hai! Cooe app me ₹10 Parity Green check kar le.");
+    alert("✅ API Response OK!\n\nRaw Data:\n" + JSON.stringify(res.data) + "\n\nAgar paise nahi kate, toh message dhyaan se padho.");
   } else {
     let errMsg = res.error || "Unknown Error";
     if (errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('invalid')) {
-      alert("❌ ERROR: Token Invalid ya Expire ho gaya hai!\n\nDetails: " + errMsg + "\n\nNaya token HTTP Canary se nikaal kar daal.");
+      alert("❌ ERROR: Token Invalid ya Expire ho gaya hai!\n\nDetails: " + errMsg + "\nRaw:\n" + JSON.stringify(res.data || ""));
     } else {
-      alert("❌ ERROR: " + errMsg + "\n\nConnection ya token ka issue hai.");
+      alert("❌ ERROR: " + errMsg + "\nRaw:\n" + JSON.stringify(res.data || ""));
     }
   }
 }
