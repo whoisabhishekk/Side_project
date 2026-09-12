@@ -519,7 +519,7 @@ async function placeCooeTradeAPI(category, betAmount, period, guessType) {
 
 /**
  * Called from showTradeSignal when auto-trade is ON
- * Now async: verifies period, checks timing, uses exact signal amount
+ * Async: verifies period, checks timing, uses exact signal amount
  */
 async function autoTradeOnSignal(key) {
   if (!autoTradeEnabled || !cooeToken) return;
@@ -530,10 +530,13 @@ async function autoTradeOnSignal(key) {
   const period = section.pendingBet.period;
 
   // ── DUPLICATE GUARD: Don't bet twice on same period for same section ──
+  // CRITICAL: Set this IMMEDIATELY (before any async work) to prevent race conditions
+  // from multiple refresh cycles triggering parallel autoTradeOnSignal calls
   if (lastAutoTradedPeriod[key] === period) {
     addLog(`🔁 [AUTO-TRADE] Already traded on ${section.name} period #${String(period).slice(-3)}, skipping duplicate.`, 'info');
     return;
   }
+  lastAutoTradedPeriod[key] = period; // LOCK immediately — no other call can pass this now
 
   // ── TIMING CHECK: Ensure enough time remains in the period ──
   const secondsLeft = getSecondsUntilNextBoundary();
@@ -542,6 +545,7 @@ async function autoTradeOnSignal(key) {
   if (secondsLeft < MIN_BET_WINDOW) {
     addLog(`⏰ [AUTO-TRADE] Skipped ${section.name}! Only ${secondsLeft}s left in period. Need ${MIN_BET_WINDOW}s minimum.`, 'error');
     showToast(`⏰ Auto-bet skipped: ${secondsLeft}s left, need ${MIN_BET_WINDOW}s`, 'error');
+    lastAutoTradedPeriod[key] = null; // Unlock — bet wasn't placed
     return;
   }
 
@@ -570,7 +574,8 @@ async function autoTradeOnSignal(key) {
       if (freshData.next_period !== period) {
         addLog(`🔄 [AUTO-TRADE] Period corrected: #${String(period).slice(-3)} → #${String(freshData.next_period).slice(-3)}`, 'info');
         actualPeriod = freshData.next_period;
-        section.pendingBet.period = actualPeriod; // Update pending bet too
+        section.pendingBet.period = actualPeriod;
+        lastAutoTradedPeriod[key] = actualPeriod; // Update lock to corrected period
       }
     }
   } catch (e) {
@@ -579,7 +584,6 @@ async function autoTradeOnSignal(key) {
 
   // ── PLACE BET ──
   addLog(`🤖 [AUTO-TRADE] Placing: ${guessType} ₹${betAmount} on ${section.name} #${String(actualPeriod).slice(-3)} | ${secondsLeft}s remaining`, 'signal');
-  lastAutoTradedPeriod[key] = actualPeriod; // Mark as traded BEFORE API call
   placeCooeTradeAPI(key, betAmount, actualPeriod, guessType);
 }
 
