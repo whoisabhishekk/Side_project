@@ -576,25 +576,49 @@ async function testAutoTrade() {
   const confirmTest = confirm("Yeh Sach mein aapke account se ₹10 (Parity - Green) bet lagayega. Test karein?");
   if (!confirmTest) return;
   
-  // Use current period from Parity if available, else fallback
+  // Get current active period from live data
   const pSection = state.sections['P'];
-  let testPeriod = "20260912001";
-  if (pSection && pSection.betHistory.length > 0) {
-    // Current period is next after last history
+  let testPeriod = null;
+  
+  // Priority 1: Use nextPeriod from section state (most accurate)
+  if (pSection && pSection.nextPeriod) {
+    testPeriod = pSection.nextPeriod;
+  }
+  
+  // Priority 2: Fetch fresh period from API
+  if (!testPeriod) {
+    try {
+      showToast('⏳ Fetching current period...', 'info');
+      const apiData = await fetchSectionData('P');
+      if (apiData && apiData.next_period) {
+        testPeriod = apiData.next_period;
+      }
+    } catch(e) {
+      console.error('Failed to fetch period:', e);
+    }
+  }
+  
+  // Priority 3: Last resort from betHistory
+  if (!testPeriod && pSection && pSection.betHistory && pSection.betHistory.length > 0) {
     testPeriod = pSection.betHistory[pSection.betHistory.length - 1].period + 1;
   }
   
-  showToast('⏳ Testing API... Please wait', 'info');
+  if (!testPeriod) {
+    alert("❌ Period fetch nahi ho paya! Page reload karo aur thodi der baad try karo.");
+    return;
+  }
+  
+  showToast(`⏳ Testing API... Period #${String(testPeriod).slice(-3)}`, 'info');
   const res = await placeCooeTradeAPI('P', 10, testPeriod, 'G');
   if (res.success) {
-    alert("✅ BET PLACED SUCCESSFULLY!\n\nCode: " + (res.data?.code || 'N/A') + "\nMsg: " + (res.data?.msg || 'N/A') + "\n\nRaw Data:\n" + JSON.stringify(res.data, null, 2));
+    alert("✅ BET PLACED SUCCESSFULLY!\n\nCode: " + (res.data?.code || 'N/A') + "\nMsg: " + (res.data?.msg || 'N/A') + "\nPeriod: " + testPeriod + "\n\nRaw Data:\n" + JSON.stringify(res.data, null, 2));
   } else {
     let errMsg = res.error || "Unknown Error";
     const rawStr = JSON.stringify(res.data || "", null, 2);
     if (errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('invalid') || errMsg.toLowerCase().includes('expire')) {
       alert("❌ ERROR: Token Invalid ya Expire ho gaya hai!\n\nCode: " + (res.data?.code || 'N/A') + "\nDetails: " + errMsg + "\n\nRaw:\n" + rawStr);
     } else {
-      alert("❌ ERROR: " + errMsg + "\n\nCode: " + (res.data?.code || 'N/A') + "\nRaw:\n" + rawStr);
+      alert("❌ ERROR: " + errMsg + "\n\nCode: " + (res.data?.code || 'N/A') + "\nPeriod: " + testPeriod + "\nRaw:\n" + rawStr);
     }
   }
 }
