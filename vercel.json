@@ -2,8 +2,12 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
+      "source": "/api/win/:path*",
+      "destination": "https://cooe02.in/win/:path*"
+    },
+    {
+      "source": "/api/app/:path*",
+      "destination": "https://cooe02.in/app/:path*"
     }
   ]
 }

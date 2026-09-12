@@ -416,7 +416,10 @@ const AUTO_TRADE_MAX_BET = 300; // Safety: max ₹300 per bet
   }
   const logSaved = localStorage.getItem('wingo-autotrade-log');
   if (logSaved) {
-    try { autoTradeLog = JSON.parse(logSaved); } catch(e) { autoTradeLog = []; }
+    try { 
+      autoTradeLog = JSON.parse(logSaved); 
+      if (!Array.isArray(autoTradeLog)) autoTradeLog = [];
+    } catch(e) { autoTradeLog = []; }
   }
 })();
 
