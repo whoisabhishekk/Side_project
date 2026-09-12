@@ -457,8 +457,8 @@ async function placeCooeTradeAPI(category, betAmount, period, guessType) {
   };
 
   try {
-    // Convert internal color code to Cooe API format
-    const apiGuessType = guessType === 'G' ? 'Green' : 'Red';
+    // Convert internal color code to Cooe API format (lowercase required)
+    const apiGuessType = guessType === 'G' ? 'green' : 'red';
     addLog(`🤖 [AUTO-TRADE] Placing ₹${betAmount} on ${apiGuessType.toUpperCase()} | ${category} | Period #${String(period).slice(-3)}`, 'signal');
 
     const requestBody = {
