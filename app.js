@@ -1145,8 +1145,11 @@ function showTradeSignal(key) {
     showSignalBanner(key);
     // Play the trade ready sound (no popup)
     playTradeReadySound();
-    // Auto-trade: place bet if enabled
-    autoTradeOnSignal(key);
+    // Auto-trade: place bet if enabled (async, runs in background)
+    autoTradeOnSignal(key).catch(err => {
+      console.error('[AUTO-TRADE] Unexpected error:', err);
+      addLog(`❌ [AUTO-TRADE] Error: ${err.message}`, 'error');
+    });
   }
 
   // Send push notification with recovery info
