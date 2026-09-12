@@ -24,10 +24,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Bet amount exceeds safety limit of 300' });
     }
 
-    const response = await fetch('http://cooeplaygame.win/win/add_user_guess', {
+    const response = await fetch('https://cooe02.in/win/add_user_guess', {
       method: 'POST',
       headers: {
-        'Host': 'cooeplaygame.win',
         'User-Agent': 'UnityPlayer/2019.4.17f1',
         'Accept': '*/*',
         'Accept-Encoding': 'deflate, gzip',
