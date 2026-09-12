@@ -475,13 +475,13 @@ async function placeCooeTradeAPI(category, betAmount, period, guessType) {
 
     const data = await resp.json();
 
-    if (resp.ok && !data.error) {
+    if (resp.ok && !data.error && data.code !== 400 && data.code !== 401) {
       logEntry.status = 'SUCCESS';
       addLog(`✅ [AUTO-TRADE] BET PLACED! ₹${betAmount} ${guessType === 'G' ? 'GREEN' : 'RED'} on ${category} #${String(period).slice(-3)}`, 'profit');
       showToast(`🤖 Auto-Trade: ₹${betAmount} ${guessType === 'G' ? 'GREEN' : 'RED'} placed!`, 'success');
     } else {
       logEntry.status = 'FAILED';
-      logEntry.error = data.error || data.message || 'Unknown error';
+      logEntry.error = data.error || data.msg || data.detail || data.message || 'Unknown error';
       addLog(`❌ [AUTO-TRADE] FAILED: ${logEntry.error}`, 'error');
       showToast(`❌ Auto-Trade Failed: ${logEntry.error}`, 'error');
     }
@@ -576,7 +576,12 @@ async function testAutoTrade() {
   if (res.success) {
     alert("✅ SUCCESS! Token aur API sahi kaam kar raha hai! Cooe app me ₹10 Parity Green check kar le.");
   } else {
-    alert("❌ ERROR: " + (res.error || "Unknown Error") + "\n\nShayad Token expire ho gaya hai ya connection issue hai.");
+    let errMsg = res.error || "Unknown Error";
+    if (errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('invalid')) {
+      alert("❌ ERROR: Token Invalid ya Expire ho gaya hai!\n\nDetails: " + errMsg + "\n\nNaya token HTTP Canary se nikaal kar daal.");
+    } else {
+      alert("❌ ERROR: " + errMsg + "\n\nConnection ya token ka issue hai.");
+    }
   }
 }
 window.testAutoTrade = testAutoTrade;

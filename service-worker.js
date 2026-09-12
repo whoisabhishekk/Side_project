@@ -1,9 +1,9 @@
-const CACHE_NAME = 'wingo-v17-autotrade';
+const CACHE_NAME = 'wingo-v18-autotrade';
 const ASSETS = [
   './',
   './index.html',
-  './index.css?v=autotrade-20260912-3',
-  './app.js?v=autotrade-20260912-3',
+  './index.css?v=autotrade-20260912-4',
+  './app.js?v=autotrade-20260912-4',
   './manifest.json',
   './icon.png'
 ];
