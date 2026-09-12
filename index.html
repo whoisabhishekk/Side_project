@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=autotrade-20260912-2">
+  <link rel="stylesheet" href="index.css?v=autotrade-20260912-3">
 </head>
 <body>
 
@@ -91,6 +91,7 @@
     <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
       <input id="cooe-token-input" type="password" placeholder="Cooe Token paste karo..." style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #374151; background: #1f2937; color: #fff; font-size: 12px; font-family: 'JetBrains Mono', monospace;">
       <button onclick="saveCooeToken()" style="padding: 8px 14px; border: none; border-radius: 8px; background: #3b82f6; color: #fff; font-weight: 600; font-size: 12px; cursor: pointer;">Save</button>
+      <button onclick="testAutoTrade()" style="padding: 8px 14px; border: none; border-radius: 8px; background: #8b5cf6; color: #fff; font-weight: 600; font-size: 12px; cursor: pointer;">Test (₹10)</button>
     </div>
     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #9ca3af;">
       <span id="autotrade-status" style="color: #ef4444;">🔴 Inactive</span>
@@ -356,6 +357,6 @@
   <div id="toast" class="toast"></div>
 
   <script src="colorDB.js?v=1"></script>
-  <script src="app.js?v=autotrade-20260912-2"></script>
+  <script src="app.js?v=autotrade-20260912-3"></script>
 </body>
 </html>

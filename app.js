@@ -555,6 +555,32 @@ function saveCooeToken() {
 }
 window.saveCooeToken = saveCooeToken;
 
+async function testAutoTrade() {
+  if (!cooeToken) {
+    showToast('❌ Pehle Cooe Token enter karo!', 'error');
+    return;
+  }
+  const confirmTest = confirm("Yeh Sach mein aapke account se ₹10 (Parity - Green) bet lagayega. Test karein?");
+  if (!confirmTest) return;
+  
+  // Use current period from Parity if available, else fallback
+  const pSection = state.sections['P'];
+  let testPeriod = "20260912001";
+  if (pSection && pSection.betHistory.length > 0) {
+    // Current period is next after last history
+    testPeriod = pSection.betHistory[pSection.betHistory.length - 1].period + 1;
+  }
+  
+  showToast('⏳ Testing API... Please wait', 'info');
+  const res = await placeCooeTradeAPI('P', 10, testPeriod, 'G');
+  if (res.success) {
+    alert("✅ SUCCESS! Token aur API sahi kaam kar raha hai! Cooe app me ₹10 Parity Green check kar le.");
+  } else {
+    alert("❌ ERROR: " + (res.error || "Unknown Error") + "\n\nShayad Token expire ho gaya hai ya connection issue hai.");
+  }
+}
+window.testAutoTrade = testAutoTrade;
+
 function updateAutoTradeUI() {
   const toggleBtn = document.getElementById('autotrade-toggle');
   const statusEl = document.getElementById('autotrade-status');
