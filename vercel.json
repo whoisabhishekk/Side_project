@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/win/:path*",
-      "destination": "https://cooe02.in/win/:path*"
+      "destination": "https://cooeplaygame.win/win/:path*"
     },
     {
       "source": "/api/app/:path*",
-      "destination": "https://cooe02.in/app/:path*"
+      "destination": "https://cooeplaygame.win/app/:path*"
     }
   ]
 }

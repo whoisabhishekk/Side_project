@@ -5,7 +5,7 @@
 
 // ============ CONFIGURATION ============
 const CONFIG = {
-  // Local proxy handles CORS — requests go to /api/win/... → proxied to cooe02.in
+  // Local proxy handles CORS — requests go to /api/win/... → proxied to cooeplaygame.win
   API_BASE: '/api',
   FRESH_SIGNAL_STORAGE_KEY: 'wingo-fresh-signal-state',
   RGRG_LOCK_STORAGE_KEY: 'wingo-rgrg-virtual-lock-state-v2',
@@ -457,8 +457,8 @@ async function placeCooeTradeAPI(category, betAmount, period, guessType) {
   };
 
   try {
-    // Convert internal color code to Cooe API format (lowercase required)
-    const apiGuessType = guessType === 'G' ? 'green' : 'red';
+    // Cooe API uses single uppercase letter: 'G' or 'R' (confirmed from app intercept)
+    const apiGuessType = guessType; // Already 'G' or 'R'
     addLog(`🤖 [AUTO-TRADE] Placing ₹${betAmount} on ${apiGuessType.toUpperCase()} | ${category} | Period #${String(period).slice(-3)}`, 'signal');
 
     const requestBody = {

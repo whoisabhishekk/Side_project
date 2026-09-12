@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
     console.log('[Trade Proxy] Request to Cooe:', JSON.stringify(requestBody));
 
-    const response = await fetch('https://cooe02.in/win/add_user_guess', {
+    const response = await fetch('https://cooeplaygame.win/win/add_user_guess', {
       method: 'POST',
       headers: {
         'User-Agent': 'UnityPlayer/2019.4.17f1',
