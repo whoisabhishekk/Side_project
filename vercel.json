@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://cooe02.in/:path*"
+      "destination": "/api/:path*"
     }
   ]
 }

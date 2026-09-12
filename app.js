@@ -398,6 +398,189 @@ function hasFreshSignalState(section) {
   return Boolean(section.freshStartArmed || section.freshStartAnchorPeriod);
 }
 
+// ============ AUTO-TRADE MODULE ============
+let autoTradeEnabled = false;
+let cooeToken = '';
+let autoTradeLog = [];
+const AUTO_TRADE_MAX_BET = 300; // Safety: max ₹300 per bet
+
+// Restore auto-trade settings from localStorage
+(function restoreAutoTrade() {
+  const saved = localStorage.getItem('wingo-autotrade');
+  if (saved) {
+    try {
+      const cfg = JSON.parse(saved);
+      cooeToken = cfg.token || '';
+      // Don't auto-enable on reload for safety — user must manually enable
+    } catch(e) {}
+  }
+  const logSaved = localStorage.getItem('wingo-autotrade-log');
+  if (logSaved) {
+    try { autoTradeLog = JSON.parse(logSaved); } catch(e) { autoTradeLog = []; }
+  }
+})();
+
+function saveAutoTradeSettings() {
+  localStorage.setItem('wingo-autotrade', JSON.stringify({ token: cooeToken }));
+}
+
+function saveAutoTradeLog() {
+  // Keep only last 100 entries
+  if (autoTradeLog.length > 100) autoTradeLog = autoTradeLog.slice(-100);
+  localStorage.setItem('wingo-autotrade-log', JSON.stringify(autoTradeLog));
+}
+
+/**
+ * Place a bet on Cooe via our Vercel API proxy
+ */
+async function placeCooeTradeAPI(category, betAmount, period, guessType) {
+  if (!cooeToken) {
+    addLog('❌ [AUTO-TRADE] Token not set! Cannot place trade.', 'error');
+    return { success: false, error: 'No token' };
+  }
+  if (betAmount > AUTO_TRADE_MAX_BET) {
+    addLog(`❌ [AUTO-TRADE] Bet ₹${betAmount} exceeds safety limit ₹${AUTO_TRADE_MAX_BET}!`, 'error');
+    return { success: false, error: 'Exceeds limit' };
+  }
+
+  const logEntry = {
+    time: new Date().toLocaleTimeString('en-IN'),
+    date: new Date().toLocaleDateString('en-IN'),
+    category,
+    amount: betAmount,
+    period: String(period),
+    color: guessType,
+    status: 'PENDING'
+  };
+
+  try {
+    addLog(`🤖 [AUTO-TRADE] Placing ₹${betAmount} on ${guessType === 'G' ? 'GREEN' : 'RED'} | ${category} | Period #${String(period).slice(-3)}`, 'signal');
+
+    const resp = await fetch('/api/trade', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: cooeToken,
+        category: category,
+        contract_money: betAmount,
+        contract_count: 1,
+        period: String(period),
+        number: -1,
+        guess_type: guessType
+      })
+    });
+
+    const data = await resp.json();
+
+    if (resp.ok && !data.error) {
+      logEntry.status = 'SUCCESS';
+      addLog(`✅ [AUTO-TRADE] BET PLACED! ₹${betAmount} ${guessType === 'G' ? 'GREEN' : 'RED'} on ${category} #${String(period).slice(-3)}`, 'profit');
+      showToast(`🤖 Auto-Trade: ₹${betAmount} ${guessType === 'G' ? 'GREEN' : 'RED'} placed!`, 'success');
+    } else {
+      logEntry.status = 'FAILED';
+      logEntry.error = data.error || data.message || 'Unknown error';
+      addLog(`❌ [AUTO-TRADE] FAILED: ${logEntry.error}`, 'error');
+      showToast(`❌ Auto-Trade Failed: ${logEntry.error}`, 'error');
+    }
+
+    autoTradeLog.push(logEntry);
+    saveAutoTradeLog();
+    updateAutoTradeUI();
+    return { success: logEntry.status === 'SUCCESS', data };
+
+  } catch (err) {
+    logEntry.status = 'ERROR';
+    logEntry.error = err.message;
+    addLog(`❌ [AUTO-TRADE] ERROR: ${err.message}`, 'error');
+    showToast(`❌ Auto-Trade Error: ${err.message}`, 'error');
+    autoTradeLog.push(logEntry);
+    saveAutoTradeLog();
+    updateAutoTradeUI();
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Called from showTradeSignal when auto-trade is ON
+ */
+function autoTradeOnSignal(key) {
+  if (!autoTradeEnabled || !cooeToken) return;
+
+  const section = state.sections[key];
+  if (!section.pendingBet || section.pendingBet.isVirtual) return;
+
+  const strategy = state.selectedStrategy;
+  let betAmount = 80; // Default L1
+
+  if (strategy === 'TREND6_FOLLOW') {
+    betAmount = TREND6_CONFIG.BET_LADDER[section.trend6Level || 0];
+  }
+
+  const guessType = section.pendingBet.color; // 'G' or 'R'
+  const period = section.pendingBet.period;
+
+  placeCooeTradeAPI(key, betAmount, period, guessType);
+}
+
+function toggleAutoTrade() {
+  if (!autoTradeEnabled) {
+    // Trying to enable
+    if (!cooeToken) {
+      showToast('❌ Pehle Cooe Token enter karo!', 'error');
+      return;
+    }
+    autoTradeEnabled = true;
+    addLog('🤖 [AUTO-TRADE] ENABLED — Bot will auto-place bets on signals!', 'signal');
+    showToast('🤖 Auto-Trade ON! Bot active hai.', 'success');
+  } else {
+    autoTradeEnabled = false;
+    addLog('⏸️ [AUTO-TRADE] DISABLED — Manual mode.', 'info');
+    showToast('⏸️ Auto-Trade OFF', 'info');
+  }
+  updateAutoTradeUI();
+}
+window.toggleAutoTrade = toggleAutoTrade;
+
+function saveCooeToken() {
+  const input = document.getElementById('cooe-token-input');
+  if (input) {
+    cooeToken = input.value.trim();
+    saveAutoTradeSettings();
+    showToast('✅ Token saved!', 'success');
+    updateAutoTradeUI();
+  }
+}
+window.saveCooeToken = saveCooeToken;
+
+function updateAutoTradeUI() {
+  const toggleBtn = document.getElementById('autotrade-toggle');
+  const statusEl = document.getElementById('autotrade-status');
+  const countEl = document.getElementById('autotrade-count');
+
+  if (toggleBtn) {
+    if (autoTradeEnabled) {
+      toggleBtn.textContent = '🤖 AUTO ON';
+      toggleBtn.style.backgroundColor = '#22c55e';
+      toggleBtn.style.color = '#fff';
+    } else {
+      toggleBtn.textContent = '🤖 AUTO OFF';
+      toggleBtn.style.backgroundColor = '#6b7280';
+      toggleBtn.style.color = '#fff';
+    }
+  }
+
+  if (statusEl) {
+    statusEl.textContent = autoTradeEnabled ? '🟢 Active' : '🔴 Inactive';
+    statusEl.style.color = autoTradeEnabled ? '#22c55e' : '#ef4444';
+  }
+
+  if (countEl) {
+    const todayTrades = autoTradeLog.filter(l => l.date === new Date().toLocaleDateString('en-IN'));
+    const successCount = todayTrades.filter(l => l.status === 'SUCCESS').length;
+    countEl.textContent = `Today: ${successCount} trades placed`;
+  }
+}
+
 // ============ SOUND SYSTEM ============
 let audioCtx = null;
 let masterGain = null;
@@ -845,6 +1028,8 @@ function showTradeSignal(key) {
     showSignalBanner(key);
     // Play the trade ready sound (no popup)
     playTradeReadySound();
+    // Auto-trade: place bet if enabled
+    autoTradeOnSignal(key);
   }
 
   // Send push notification with recovery info
@@ -3608,6 +3793,13 @@ document.addEventListener('DOMContentLoaded', () => {
     soundEl.style.backgroundColor = 'var(--color-red)';
     soundEl.style.color = '#fff';
   }
+
+  // Restore auto-trade UI
+  const tokenInput = document.getElementById('cooe-token-input');
+  if (tokenInput && cooeToken) {
+    tokenInput.value = cooeToken;
+  }
+  updateAutoTradeUI();
 });
 
 // Register Service Worker for PWA

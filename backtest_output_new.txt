@@ -1,0 +1,162 @@
+
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║         🏆 COMPREHENSIVE BACKTEST — All 5 Dashboard Strategies Compared 🏆          ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+
+  ⚠️  No data for Parity
+  ⚠️  No data for Sapre
+  ⚠️  No data for Bcone
+  ⚠️  No data for Emerd
+
+  📦 Total: 0 periods across 0 categories
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║  📊 TABLE 1: OVERALL RANKING — Sorted by Profit (₹100/bet, 1.96x payout)            ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+
+  #  │ Strategy                    │ Signals │ Wins │ Loss │ Win%   │ Net  │ Profit     │ ROI/Bet  │ MaxLoss │ MaxDD
+  ───┼─────────────────────────────┼─────────┼──────┼──────┼────────┼──────┼────────────┼──────────┼─────────┼──────
+  🥇 │ 🎯 RGRG + Trend Break Wait  │       0 │    0 │    0 │   0.0% │   +0 │        +₹0 │     0.0% │       0 │ ₹0
+  🥈 │ 🔥 Contrarian Double RR→G   │       0 │    0 │    0 │   0.0% │   +0 │        +₹0 │     0.0% │       0 │ ₹0
+  🥉 │ ⚡ Break→Opposite ABB→opp    │       0 │    0 │    0 │   0.0% │   +0 │        +₹0 │     0.0% │       0 │ ₹0
+     │ 💎 Streak Break 3+same→opp  │       0 │    0 │    0 │   0.0% │   +0 │        +₹0 │     0.0% │       0 │ ₹0
+     │ 🎯 Sniper 3-Loss + RGRG     │       0 │    0 │    0 │   0.0% │   +0 │        +₹0 │     0.0% │       0 │ ₹0
+
+  Net = Wins - Losses | ROI = Profit per ₹100 bet | MaxLoss = Max consecutive losses
+  MaxDD = Maximum Drawdown (worst peak-to-trough ₹ drop)
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║  📊 TABLE 2: WIN RATE RANKING — Sorted by Win %                                     ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+
+  #  │ Strategy                    │ Win%   │ Signals │ Profit     │ Risk Level
+  ───┼─────────────────────────────┼────────┼─────────┼────────────┼───────────
+  🥇 │ 🎯 RGRG + Trend Break Wait  │   0.0% │       0 │        +₹0 │ ⭐ LOW
+  🥈 │ 🔥 Contrarian Double RR→G   │   0.0% │       0 │        +₹0 │ ⭐ LOW
+  🥉 │ ⚡ Break→Opposite ABB→opp    │   0.0% │       0 │        +₹0 │ ⭐ LOW
+     │ 💎 Streak Break 3+same→opp  │   0.0% │       0 │        +₹0 │ ⭐ LOW
+     │ 🎯 Sniper 3-Loss + RGRG     │   0.0% │       0 │        +₹0 │ ⭐ LOW
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║  📊 TABLE 3: CATEGORY-WISE BREAKDOWN — Har Section Ka Performance                   ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+
+  🎯 RGRG + Trend Break Wait (Balanced/Safe) — Overall: 0.0% | +₹0
+  ┌─────────┬─────────┬──────┬──────┬────────┬──────────┬──────┬──────┐
+  │ Section │ Signals │ Wins │ Loss │ Win%   │ Profit   │ MaxL │ MaxW │
+  ├─────────┼─────────┼──────┼──────┼────────┼──────────┼──────┼──────┤
+  └─────────┴─────────┴──────┴──────┴────────┴──────────┴──────┴──────┘
+
+  🔥 Contrarian Double RR→G (Highest Signals) — Overall: 0.0% | +₹0
+  ┌─────────┬─────────┬──────┬──────┬────────┬──────────┬──────┬──────┐
+  │ Section │ Signals │ Wins │ Loss │ Win%   │ Profit   │ MaxL │ MaxW │
+  ├─────────┼─────────┼──────┼──────┼────────┼──────────┼──────┼──────┤
+  └─────────┴─────────┴──────┴──────┴────────┴──────────┴──────┴──────┘
+
+  ⚡ Break→Opposite ABB→opp (High Profit) — Overall: 0.0% | +₹0
+  ┌─────────┬─────────┬──────┬──────┬────────┬──────────┬──────┬──────┐
+  │ Section │ Signals │ Wins │ Loss │ Win%   │ Profit   │ MaxL │ MaxW │
+  ├─────────┼─────────┼──────┼──────┼────────┼──────────┼──────┼──────┤
+  └─────────┴─────────┴──────┴──────┴────────┴──────────┴──────┴──────┘
+
+  💎 Streak Break 3+same→opp (Consistent) — Overall: 0.0% | +₹0
+  ┌─────────┬─────────┬──────┬──────┬────────┬──────────┬──────┬──────┐
+  │ Section │ Signals │ Wins │ Loss │ Win%   │ Profit   │ MaxL │ MaxW │
+  ├─────────┼─────────┼──────┼──────┼────────┼──────────┼──────┼──────┤
+  └─────────┴─────────┴──────┴──────┴────────┴──────────┴──────┴──────┘
+
+  🎯 Sniper 3-Loss + RGRG (High Win% Rare) — Overall: 0.0% | +₹0
+  ┌─────────┬─────────┬──────┬──────┬────────┬──────────┬──────┬──────┐
+  │ Section │ Signals │ Wins │ Loss │ Win%   │ Profit   │ MaxL │ MaxW │
+  ├─────────┼─────────┼──────┼──────┼────────┼──────────┼──────┼──────┤
+  └─────────┴─────────┴──────┴──────┴────────┴──────────┴──────┴──────┘
+  📋 Virtual bets skipped: 0 wins (missed ₹) + 0 losses (saved ₹)
+     → Saved from virtual losses: +₹0 | Missed from virtual wins: -₹0
+     → Net benefit of waiting: ₹0
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║  📊 TABLE 4: RISK ANALYSIS — Streak Distributions & Drawdown                        ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+
+  🎯 RGRG + Trend Break Wait
+     Max Consecutive Losses: 0 | Max Consecutive Wins: 0
+     Max Drawdown: ₹0 | Peak Balance: ₹0
+
+  🔥 Contrarian Double RR→G
+     Max Consecutive Losses: 0 | Max Consecutive Wins: 0
+     Max Drawdown: ₹0 | Peak Balance: ₹0
+
+  ⚡ Break→Opposite ABB→opp
+     Max Consecutive Losses: 0 | Max Consecutive Wins: 0
+     Max Drawdown: ₹0 | Peak Balance: ₹0
+
+  💎 Streak Break 3+same→opp
+     Max Consecutive Losses: 0 | Max Consecutive Wins: 0
+     Max Drawdown: ₹0 | Peak Balance: ₹0
+
+  🎯 Sniper 3-Loss + RGRG
+     Max Consecutive Losses: 0 | Max Consecutive Wins: 0
+     Max Drawdown: ₹0 | Peak Balance: ₹0
+
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║  📊 TABLE 5: PROFIT AT DIFFERENT BET AMOUNTS                                        ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+
+  Strategy                    │ ₹10/bet   │ ₹50/bet    │ ₹100/bet   │ ₹200/bet    │ ₹500/bet
+  ────────────────────────────┼───────────┼────────────┼────────────┼─────────────┼───────────
+  🎯 RGRG + Trend Break Wait  │       +₹0 │        +₹0 │        +₹0 │         +₹0 │       +₹0
+  🔥 Contrarian Double RR→G   │       +₹0 │        +₹0 │        +₹0 │         +₹0 │       +₹0
+  ⚡ Break→Opposite ABB→opp    │       +₹0 │        +₹0 │        +₹0 │         +₹0 │       +₹0
+  💎 Streak Break 3+same→opp  │       +₹0 │        +₹0 │        +₹0 │         +₹0 │       +₹0
+  🎯 Sniper 3-Loss + RGRG     │       +₹0 │        +₹0 │        +₹0 │         +₹0 │       +₹0
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║  📊 TABLE 6: SIGNAL FREQUENCY — Kitni Baar Signal Aata Hai                          ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+
+  Data span: ~NaN periods per category = ~NaN hours of data
+
+  Strategy                    │ Total Signals │ Signals/Hour │ Avg Gap (mins)
+  ────────────────────────────┼───────────────┼──────────────┼───────────────
+  🎯 RGRG + Trend Break Wait  │             0 │          0.0 │          ∞ min
+  🔥 Contrarian Double RR→G   │             0 │          0.0 │          ∞ min
+  ⚡ Break→Opposite ABB→opp    │             0 │          0.0 │          ∞ min
+  💎 Streak Break 3+same→opp  │             0 │          0.0 │          ∞ min
+  🎯 Sniper 3-Loss + RGRG     │             0 │          0.0 │          ∞ min
+
+
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║  🏆 FINAL VERDICT — Kaunsa Strategy Best Hai?                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+
+  💰 MOST PROFITABLE:    🎯 RGRG + Trend Break Wait
+                         Profit: +₹0 | Win Rate: 0.0% | 0 signals
+
+  📈 HIGHEST WIN RATE:   🎯 RGRG + Trend Break Wait
+                         Win Rate: 0.0% | Profit: ₹0 | 0 signals
+
+  🛡️  SAFEST (Low Risk):  🎯 RGRG + Trend Break Wait
+                         Max Loss Streak: 0 | Drawdown: ₹0 | Win: 0.0%
+
+  📊 BEST ROI PER BET:   🎯 RGRG + Trend Break Wait
+                         ROI: 0.0% per bet | Profit: ₹0
+
+  🔔 MOST SIGNALS:       🎯 RGRG + Trend Break Wait
+                         0 signals | Great for active trading
+
+
+  ═══ RECOMMENDATION ═══
+
+  🏆 CLEAR WINNER: 🎯 RGRG + Trend Break Wait
+     Best in both profit AND win rate!
+
+  Note: Results are based on historical data available via API.
+        Past performance does NOT guarantee future results.
+
+═══════════════════════════════════════════════════════════════════════════════════════
+

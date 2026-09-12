@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="index.css?v=ladder-20260911">
+  <link rel="stylesheet" href="index.css?v=autotrade-20260912">
 </head>
 <body>
 
@@ -79,6 +79,22 @@
         Fresh Signals From Now
       </button>
       <span class="strategy-hint">6 same colors dikhne pe bet lagao. Bet: ₹80 → ₹240 recovery. Max 8 losses/day.</span>
+    </div>
+  </section>
+
+  <!-- Auto-Trade Panel -->
+  <section class="strategy-panel" style="border: 2px solid #f59e0b; margin-top: 8px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+      <span style="font-weight: 700; font-size: 14px; color: #f59e0b;">🤖 Auto-Trade (Cooe)</span>
+      <button id="autotrade-toggle" onclick="toggleAutoTrade()" style="padding: 6px 16px; border: none; border-radius: 8px; font-weight: 700; font-size: 12px; cursor: pointer; background-color: #6b7280; color: #fff;">🤖 AUTO OFF</button>
+    </div>
+    <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 8px;">
+      <input id="cooe-token-input" type="password" placeholder="Cooe Token paste karo..." style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #374151; background: #1f2937; color: #fff; font-size: 12px; font-family: 'JetBrains Mono', monospace;">
+      <button onclick="saveCooeToken()" style="padding: 8px 14px; border: none; border-radius: 8px; background: #3b82f6; color: #fff; font-weight: 600; font-size: 12px; cursor: pointer;">Save</button>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #9ca3af;">
+      <span id="autotrade-status" style="color: #ef4444;">🔴 Inactive</span>
+      <span id="autotrade-count">Today: 0 trades placed</span>
     </div>
   </section>
 
@@ -340,6 +356,6 @@
   <div id="toast" class="toast"></div>
 
   <script src="colorDB.js?v=1"></script>
-  <script src="app.js?v=ladder-20260911"></script>
+  <script src="app.js?v=autotrade-20260912"></script>
 </body>
 </html>
